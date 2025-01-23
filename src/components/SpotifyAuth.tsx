@@ -6,6 +6,13 @@ const SpotifyAuth = () => {
 
   useEffect(() => {
     const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
+    console.log("Client ID:", clientId); // Debug log
+    
+    if (!clientId) {
+      console.error("Missing Spotify Client ID");
+      return;
+    }
+
     const redirectUri = import.meta.env.PROD 
       ? "https://swipifys.netlify.app/callback"
       : "http://localhost:3000/callback";
