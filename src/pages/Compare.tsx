@@ -88,6 +88,11 @@ const Compare = () => {
     }
   };
 
+  const handleAudioPlay = (event: React.MouseEvent<HTMLAudioElement>) => {
+    const audio = event.currentTarget;
+    audio.play().catch(error => console.log('Playback failed:', error));
+  };
+
   const getNextPair = async (
     matchups: { [groupIndex: number]: { [key: string]: boolean } }, 
     groupIndex: number,
@@ -350,7 +355,10 @@ const Compare = () => {
             </div>
             {(currentPair[0].previewUrl || previews.song1) && (
               <audio 
-                controls 
+                controls
+                playsInline
+                preload="metadata"
+                onClick={handleAudioPlay}
                 src={currentPair[0].previewUrl || previews.song1 || ''} 
               />
             )}
@@ -366,7 +374,10 @@ const Compare = () => {
             <p>{currentPair[1].artist} - {currentPair[1].album}</p>
             {(currentPair[1].previewUrl || previews.song2) && (
               <audio 
-                controls 
+                controls
+                playsInline
+                preload="metadata"
+                onClick={handleAudioPlay}
                 src={currentPair[1].previewUrl || previews.song2 || ''} 
               />
             )}
