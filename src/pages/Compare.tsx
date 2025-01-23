@@ -39,6 +39,7 @@ const Compare = () => {
   });
   const [progress, setProgress] = useState<{ completed: number; total: number }>({ completed: 0, total: 0 });
   const [showGroupCompletion, setShowGroupCompletion] = useState(false);
+  const [isPlaying, setIsPlaying] = useState<{ song1: boolean; song2: boolean }>({ song1: false, song2: false });
 
   const fetchAndSaveSongs = async (playlistId: string) => {
     const userId = auth.currentUser?.uid;
@@ -88,9 +89,29 @@ const Compare = () => {
     }
   };
 
-  const handleAudioPlay = (event: React.MouseEvent<HTMLAudioElement>) => {
+  const handleAudioPlay = async (event: React.MouseEvent<HTMLAudioElement>, songNumber: 'song1' | 'song2') => {
+    event.preventDefault();
     const audio = event.currentTarget;
-    audio.play().catch(error => console.log('Playback failed:', error));
+    
+    try {
+      if (isPlaying[songNumber]) {
+        await audio.pause();
+        setIsPlaying(prev => ({ ...prev, [songNumber]: false }));
+      } else {
+        // Pause other audio if playing
+        const otherSong = songNumber === 'song1' ? 'song2' : 'song1';
+        const otherAudio = document.querySelector(`[data-song="${otherSong}"]`) as HTMLAudioElement;
+        if (otherAudio) {
+          otherAudio.pause();
+          setIsPlaying(prev => ({ ...prev, [otherSong]: false }));
+        }
+        
+        await audio.play();
+        setIsPlaying(prev => ({ ...prev, [songNumber]: true }));
+      }
+    } catch (error) {
+      console.log('Playback failed:', error);
+    }
   };
 
   const getNextPair = async (
@@ -358,7 +379,8 @@ const Compare = () => {
                 controls
                 playsInline
                 preload="metadata"
-                onClick={handleAudioPlay}
+                data-song="song1"
+                onClick={(e) => handleAudioPlay(e, 'song1')}
                 src={currentPair[0].previewUrl || previews.song1 || ''} 
               />
             )}
@@ -377,7 +399,8 @@ const Compare = () => {
                 controls
                 playsInline
                 preload="metadata"
-                onClick={handleAudioPlay}
+                data-song="song2"
+                onClick={(e) => handleAudioPlay(e, 'song2')}
                 src={currentPair[1].previewUrl || previews.song2 || ''} 
               />
             )}
