@@ -271,16 +271,11 @@ const Compare = () => {
 
   if (!currentPair[0] || !currentPair[1]) {
     if (showGroupCompletion && currentGroupIndex < groups.length) {
-        const updatedGroup = songs.filter(song => 
-            currentGroup.some(groupSong => groupSong.id === song.id)
-        );
-        const topSongs = updatedGroup
-            .sort((a, b) => b.elo - a.elo)
-            .slice(0, 2);
-
         return <GroupCompletion
-            qualifiers={topSongs}
-            allGroupSongs={updatedGroup.sort((a, b) => b.elo - a.elo)}
+            qualifiers={currentGroup
+                .sort((a, b) => b.elo - a.elo)
+                .slice(0, 2)}
+            allGroupSongs={currentGroup.sort((a, b) => b.elo - a.elo)}
             onContinue={async () => {
                 if (currentGroupIndex < groups.length - 1) {
                     const nextGroupIndex = currentGroupIndex + 1;
