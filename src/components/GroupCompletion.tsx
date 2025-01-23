@@ -7,65 +7,38 @@ interface GroupCompletionProps {
   isLastGroup: boolean;
 }
 
-const GroupCompletion: React.FC<GroupCompletionProps> = ({ 
-  qualifiers, 
-  allGroupSongs, 
+const GroupCompletion: React.FC<GroupCompletionProps> = ({
+  qualifiers,
+  allGroupSongs,
   onContinue,
-  isLastGroup 
+  isLastGroup
 }) => {
   return (
-    <div className="flex flex-col items-center gap-6 p-4">
-      <h2 className="text-2xl font-bold">Group Complete!</h2>
-      
-      {/* Qualified Songs */}
-      <div className="mb-8">
-        <h3 className="text-xl font-bold text-green-600 mb-4">Advancing to Finals</h3>
-        <div className="flex gap-8">
-          {qualifiers.map(song => (
-            <div key={song.id} className="text-center">
-              <img 
-                src={song.albumCover} 
-                alt={song.name}
-                className="w-32 h-32 rounded-lg shadow-lg object-cover border-4 border-green-500" 
-              />
-              <h4 className="font-bold mt-2">{song.name}</h4>
-              <p className="text-gray-600">{song.artist}</p>
-            </div>
-          ))}
-        </div>
+    <div className="flex flex-col items-center p-4">
+      <h2 className="text-2xl font-bold mb-4">Group Complete!</h2>
+      <div className="mb-4">
+        <h3 className="text-xl font-semibold mb-2">Advancing to Next Round:</h3>
+        {qualifiers.map((song, index) => (
+          <div key={song.id} className="mb-2">
+            <p className="font-bold">{index + 1}. {song.name}</p>
+            <p className="text-gray-600">{song.artist}</p>
+            <p className="text-gray-500">Elo: {Math.round(song.elo)}</p>
+          </div>
+        ))}
       </div>
-
-      {/* All Group Songs */}
-      <div>
-        <h3 className="text-xl font-bold text-gray-600 mb-4">Group Results</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {allGroupSongs.map(song => {
-            const isQualifier = qualifiers.some(q => q.id === song.id);
-            return (
-              <div 
-                key={song.id} 
-                className={`text-center ${isQualifier ? 'opacity-100' : 'opacity-50'}`}
-              >
-                <img 
-                  src={song.albumCover} 
-                  alt={song.name}
-                  className={`w-24 h-24 rounded-lg shadow-lg object-cover 
-                    ${isQualifier ? 'border-4 border-green-500' : ''}`} 
-                />
-                <h4 className="font-bold mt-2">{song.name}</h4>
-                <p className="text-gray-600">{song.artist}</p>
-                <p className="text-sm text-gray-500">Elo: {song.elo}</p>
-              </div>
-            );
-          })}
-        </div>
+      <div className="mb-4">
+        <h3 className="text-xl font-semibold mb-2">Final Group Rankings:</h3>
+        {allGroupSongs.map((song, index) => (
+          <div key={song.id} className="mb-1">
+            <p>{index + 1}. {song.name} - {Math.round(song.elo)}</p>
+          </div>
+        ))}
       </div>
-
       <button
         onClick={onContinue}
-        className="mt-8 px-8 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
       >
-        {isLastGroup ? "Start Finals" : "Next Group"}
+        {isLastGroup ? "View Final Results" : "Continue to Next Group"}
       </button>
     </div>
   );

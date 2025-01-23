@@ -31,13 +31,15 @@ const Playlists = () => {
           artist: item.track.artists[0].name,
           album: item.track.album.name,
           albumCover: item.track.album.images[0].url,
+          elo: 1000,
+          previewUrl: item.track.preview_url
         };
       }
       return null;
     }).filter(Boolean);  // Remove any null values
 
     const playlistRef = ref(db, `users/${userId}/playlists/${playlistId}`);
-    set(playlistRef, songs);
+    await set(playlistRef, { songs });
   };
 
   return (

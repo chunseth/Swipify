@@ -1,25 +1,18 @@
 import { useEffect } from 'react';
-import { auth } from '../services/firebase';
+import { refreshAccessToken } from '../components/refreshToken';
 
-const REFRESH_INTERVAL = 45 * 60 * 1000; // Refresh 45 minutes (to be safe)
+const REFRESH_INTERVAL = 45 * 60 * 1000; // 45 minutes
 
 export const useTokenRefresh = () => {
   useEffect(() => {
     const refreshToken = async () => {
       try {
-        const response = await fetch('/api/refresh-token', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            uid: auth.currentUser?.uid,
-          }),
-        });
-        
-        const data = await response.json();
-        if (data.access_token) {
-          localStorage.setItem('spotifyAccessToken', data.access_token);
+        const newAccessToken = await refreshAccessToken();
+        if (newAccessToken) {
+          localStorage.setItem('spotifyAccessToken', newAccessToken);
+        } else {
+          // If refresh failed and we have no valid tokens, redirect to auth
+          window.location.href = '/auth';
         }
       } catch (error) {
         console.error('Failed to refresh token:', error);
@@ -28,9 +21,9 @@ export const useTokenRefresh = () => {
 
     const intervalId = setInterval(refreshToken, REFRESH_INTERVAL);
     
-    // Initial refresh
+    // Initial refresh check
     refreshToken();
 
     return () => clearInterval(intervalId);
   }, []);
-}; 
+};

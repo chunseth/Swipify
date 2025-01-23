@@ -21,15 +21,16 @@ export const refreshAccessToken = async () => {
         }),
       });
   
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
       const data = await response.json();
       if (data.access_token) {
-        console.log("New Access Token Received:", data.access_token);
-        localStorage.setItem("spotifyAccessToken", data.access_token);
         return data.access_token;
-      } else {
-        console.error("Failed to refresh access token:", data);
-        return null;
       }
+      
+      throw new Error('No access token in response');
     } catch (error) {
       console.error("Error refreshing access token:", error);
       return null;
