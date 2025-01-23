@@ -21,6 +21,7 @@ const Finals = () => {
   const [finalists, setFinalists] = useState<Song[]>([]);
   const [currentPair, setCurrentPair] = useState<[Song | null, Song | null]>([null, null]);
   const [matchups, setMatchups] = useState<{ [key: string]: boolean }>({});
+  const [playlistName, setPlaylistName] = useState<string>("");
   const [progress, setProgress] = useState<{ completed: number; total: number }>({ completed: 0, total: 0 });
   const [previews, setPreviews] = useState<{ song1: string | null; song2: string | null }>({
     song1: null,
@@ -32,6 +33,13 @@ const Finals = () => {
     const initializeFinals = async () => {
       const userId = auth.currentUser?.uid;
       if (!userId || !playlistId) return;
+
+      // Get playlist name
+      const playlistRef = ref(db, `users/${userId}/playlists/${playlistId}`);
+      const playlistSnapshot = await get(playlistRef);
+      if (playlistSnapshot.exists()) {
+        setPlaylistName(playlistSnapshot.val().name || "Finals");
+      }
 
       // Get finalists
       const finalistsRef = ref(db, `users/${userId}/playlists/${playlistId}/finalists`);
@@ -180,6 +188,7 @@ const Finals = () => {
 
   return (
     <div className="flex flex-col items-center min-h-screen p-4 gap-4">
+      <h1 className="text-2xl font-bold mb-4">{playlistName} - Finals</h1>
       {/* Hidden audio elements */}
       <audio id="song1-preview" src={previews.song1 || ''} />
       <audio id="song2-preview" src={previews.song2 || ''} />

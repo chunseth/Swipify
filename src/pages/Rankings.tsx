@@ -6,18 +6,22 @@ import { db, auth } from "../services/firebase";
 const Rankings = () => {
   const { playlistId } = useParams<{ playlistId: string }>();
   const [rankedSongs, setRankedSongs] = useState<any[]>([]);
+  const [playlistName, setPlaylistName] = useState<string>("");
 
   useEffect(() => {
     const userId = auth.currentUser?.uid;
     if (!userId || !playlistId) return;
 
-    const playlistRef = ref(db, `users/${userId}/playlists/${playlistId}/songs`);
+    // Get playlist name
+    const playlistRef = ref(db, `users/${userId}/playlists/${playlistId}`);
     get(playlistRef).then((snapshot) => {
       if (snapshot.exists()) {
-        const songs = Object.values(snapshot.val());
-        // Sort songs by Elo score (highest first)
-        const sortedSongs = songs.sort((a: any, b: any) => b.elo - a.elo);
-        setRankedSongs(sortedSongs);
+        setPlaylistName(snapshot.val().name || "Playlist");
+        const songs = snapshot.val().songs;
+        if (songs) {
+          const sortedSongs = Object.values(songs).sort((a: any, b: any) => b.elo - a.elo);
+          setRankedSongs(sortedSongs);
+        }
       }
     });
   }, [playlistId]);
@@ -25,7 +29,7 @@ const Rankings = () => {
   return (
     <div>
       <h1>Rankings</h1>
-      <h2>Playlist: {playlistId}</h2>
+      <h2>{playlistName}</h2>
       <table>
         <thead>
           <tr>
@@ -39,7 +43,7 @@ const Rankings = () => {
         <tbody>
           {rankedSongs.map((song, index) => (
             <tr key={song.id}>
-              <td>{index + 1}</td> {/* Rank (1st, 2nd, 3rd, etc.) */}
+              <td>{index + 1}</td>
               <td>{song.name}</td>
               <td>{song.artist}</td>
               <td>{song.album}</td>
