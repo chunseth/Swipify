@@ -7,12 +7,18 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const [authStatus, setAuthStatus] = useState<string>("");
   const navigate = useNavigate();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user && !localStorage.getItem("spotifyAccessToken")) {
-        navigate("/spotify-auth");
+      if (user) {
+        setAuthStatus("You're signed in! Use the menu button ☰ to navigate to Dashboard.");
+        if (!localStorage.getItem("spotifyAccessToken")) {
+          navigate("/spotify-auth");
+        }
+      } else {
+        setAuthStatus("Please sign in to continue");
       }
     });
     return () => unsubscribe();
@@ -37,6 +43,11 @@ const Auth = () => {
         <h1 className="text-3xl font-bold mb-8 text-white text-center">
           {isSignUp ? "Sign Up" : "Sign In"}
         </h1>
+        {authStatus && (
+          <div className={`text-center mb-4 ${authStatus.includes("signed in") ? "text-[#1DB954]" : "text-gray-400"}`}>
+            {authStatus}
+          </div>
+        )}
         <form onSubmit={handleAuth} className="space-y-6">
           <input
             type="email"
