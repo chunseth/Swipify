@@ -6,7 +6,9 @@ const SpotifyAuth = () => {
 
   useEffect(() => {
     const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
-    const redirectUri = import.meta.env.VITE_SPOTIFY_REDIRECT_URI;
+    const redirectUri = import.meta.env.PROD 
+      ? "https://your-site.netlify.app/callback"
+      : "http://localhost:3000/callback";
     const scopes = "user-read-private user-read-email playlist-read-private";
 
     const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=token`;
