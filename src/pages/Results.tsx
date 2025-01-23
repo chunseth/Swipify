@@ -99,6 +99,7 @@ const Results = () => {
                       src={song.albumCover} 
                       alt={song.album}
                       className="w-16 h-16 rounded-md shadow-sm"
+                      style={{ maxWidth: '16rem', maxHeight: '16rem' }} 
                     />
                   </div>
                   <div className="flex-1 min-w-0">

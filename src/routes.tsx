@@ -9,6 +9,7 @@ import SpotifyAuth from "./components/SpotifyAuth";
 import Callback from "./components/Callback";
 import Compare from "./pages/Compare";
 import Results from "./pages/Results";
+import Finals from "./pages/Finals";
 
 const AppRoutes = () => (
   <Routes>
@@ -20,6 +21,7 @@ const AppRoutes = () => (
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/compare/:playlistId" element={<Compare />} />
       <Route path="/rankings/:playlistId" element={<Rankings />} /> {/* Add Rankings route */}
+      <Route path="/finals/:playlistId" element={<Finals />} />
       <Route path="/results/:playlistId" element={<Results />} />
     </Route>
     <Route path="*" element={<NotFound />} />

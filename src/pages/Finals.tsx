@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { ref, get, update } from "firebase/database";
+import { ref, get, update, set } from "firebase/database";
 import { db, auth } from "../services/firebase";
 import { calculateElo } from "../utils/eloCalculator";
 import { searchItunes } from "../utils/itunesSearch";
@@ -19,7 +19,7 @@ interface Song {
 const Finals = () => {
   const { playlistId } = useParams<{ playlistId: string }>();
   const [finalists, setFinalists] = useState<Song[]>([]);
-  const [currentPair, setCurrentPair] = useState<[any, any]>([null, null]);
+  const [currentPair, setCurrentPair] = useState<[Song | null, Song | null]>([null, null]);
   const [matchups, setMatchups] = useState<{ [key: string]: boolean }>({});
   const [progress, setProgress] = useState<{ completed: number; total: number }>({ completed: 0, total: 0 });
   const [previews, setPreviews] = useState<{ song1: string | null; song2: string | null }>({
@@ -29,18 +29,19 @@ const Finals = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const loadFinalists = async () => {
+    const initializeFinals = async () => {
       const userId = auth.currentUser?.uid;
       if (!userId || !playlistId) return;
 
+      // Get finalists
       const finalistsRef = ref(db, `users/${userId}/playlists/${playlistId}/finalists`);
       const snapshot = await get(finalistsRef);
-
+      
       if (snapshot.exists()) {
         const loadedFinalists = Object.values(snapshot.val()) as Song[];
         setFinalists(loadedFinalists);
 
-        // Generate matchups for finalists
+        // Generate and save matchups
         const newMatchups: { [key: string]: boolean } = {};
         for (let i = 0; i < loadedFinalists.length; i++) {
           for (let j = i + 1; j < loadedFinalists.length; j++) {
@@ -48,12 +49,16 @@ const Finals = () => {
             newMatchups[key] = false;
           }
         }
+
+        // Save matchups to Firebase
+        const matchupsRef = ref(db, `users/${userId}/playlists/${playlistId}/finalMatchups`);
+        await set(matchupsRef, newMatchups);
         setMatchups(newMatchups);
-        
-        // Set initial pair
-        const firstPair = await getNextPair(newMatchups);
+
+        // Get first pair
+        const firstPair = await getNextPair(newMatchups, loadedFinalists);
         if (firstPair[0]) {
-          setCurrentPair(firstPair as [any, any]);
+          setCurrentPair(firstPair as [Song, Song]);
         }
 
         // Set initial progress
@@ -62,7 +67,7 @@ const Finals = () => {
       }
     };
 
-    loadFinalists();
+    initializeFinals();
   }, [playlistId]);
 
   useEffect(() => {
@@ -76,7 +81,7 @@ const Finals = () => {
     }
   }, [currentPair]);
 
-  const getNextPair = async (currentMatchups: { [key: string]: boolean }) => {
+  const getNextPair = async (currentMatchups: { [key: string]: boolean }, songs: Song[]) => {
     const remainingMatchups = Object.entries(currentMatchups).filter(([_, compared]) => !compared);
     
     if (remainingMatchups.length > 0) {
@@ -84,8 +89,8 @@ const Finals = () => {
       const [key] = remainingMatchups[randomIndex];
       const [songId1, songId2] = key.split("_");
 
-      const song1 = finalists.find(song => song.id === songId1);
-      const song2 = finalists.find(song => song.id === songId2);
+      const song1 = songs.find(song => song.id === songId1);
+      const song2 = songs.find(song => song.id === songId2);
       
       if (song1 && song2) {
         return [song1, song2];
@@ -141,12 +146,12 @@ const Finals = () => {
         setProgress({ completed, total: progress.total });
 
         // Get next pair
-        const nextPair = await getNextPair(updatedMatchups);
+        const nextPair = await getNextPair(updatedMatchups, updatedFinalists);
         if (!nextPair[0]) {
           // Competition is complete
           navigate(`/results/${playlistId}`);
         } else {
-          setCurrentPair(nextPair as [any, any]);
+          setCurrentPair(nextPair as [Song, Song]);
         }
       } catch (error) {
         console.error("Error updating finals:", error);

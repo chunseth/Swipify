@@ -24,14 +24,15 @@ interface Song {
 
 const Compare = () => {
   const { playlistId } = useParams<{ playlistId: string }>();
-  const [songs, setSongs] = useState<any[]>([]);
-  const [groups, setGroups] = useState<any[][]>([]);
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [groups, setGroups] = useState<Song[][]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
-  const [currentGroup, setCurrentGroup] = useState<any[]>([]);
-  const [currentPair, setCurrentPair] = useState<[any, any]>([null, null]);
+  const [currentGroup, setCurrentGroup] = useState<Song[]>([]);
+  const [currentPair, setCurrentPair] = useState<[Song | null, Song | null]>([null, null]);
   const [groupMatchups, setGroupMatchups] = useState<{ [groupIndex: number]: { [key: string]: boolean } }>({});
-  const [finalists, setFinalists] = useState<any[]>([]);
+  const [finalists, setFinalists] = useState<Song[]>([]);
   const [previews, setPreviews] = useState<{ song1: string | null; song2: string | null }>({
     song1: null,
     song2: null,
@@ -39,12 +40,10 @@ const Compare = () => {
   const [progress, setProgress] = useState<{ completed: number; total: number }>({ completed: 0, total: 0 });
   const [showGroupCompletion, setShowGroupCompletion] = useState(false);
 
-  // Fetch songs from Spotify and save to Firebase
   const fetchAndSaveSongs = async (playlistId: string) => {
     const userId = auth.currentUser?.uid;
     if (!userId) return [];
 
-    // Check for existing songs first
     const playlistRef = ref(db, `users/${userId}/playlists/${playlistId}/songs`);
     const snapshot = await get(playlistRef);
     const existingSongs = snapshot.exists() ? snapshot.val() : {};
@@ -76,9 +75,8 @@ const Compare = () => {
             })
             .filter(Boolean) as Song[];
 
-        // Save to Firebase
-        const updates: { [key: string]: any } = {};
-        tracks.forEach((track: any) => {
+        const updates: { [key: string]: Song } = {};
+        tracks.forEach((track: Song) => {
             updates[track.id] = track;
         });
         await set(playlistRef, updates);
@@ -90,132 +88,11 @@ const Compare = () => {
     }
   };
 
-  useEffect(() => {
-    const initializePlaylist = async () => {
-        const userId = auth.currentUser?.uid;
-        if (!userId || !playlistId) return;
-    
-        // Check existing data in Firebase
-        const playlistRef = ref(db, `users/${userId}/playlists/${playlistId}`);
-        const snapshot = await get(playlistRef);
-        
-        if (snapshot.exists()) {
-            const existingData = snapshot.val();
-            
-            // Ensure we have all required data
-            if (!existingData.songs || !existingData.groups) {
-                // If missing critical data, reinitialize
-                const freshSongs = await fetchAndSaveSongs(playlistId);
-                if (freshSongs.length < 2) return;
-    
-                const newGroups = [];
-                for (let i = 0; i < freshSongs.length; i += 6) {
-                    newGroups.push(freshSongs.slice(i, i + 6));
-                }
-                
-                const newMatchups = await generateMatchups(newGroups, userId, playlistId);
-                
-                setSongs(freshSongs);
-                setGroups(newGroups);
-                setCurrentGroup(newGroups[0]);
-                setGroupMatchups(newMatchups);
-                setCurrentGroupIndex(0);
-                
-                const firstPair = await getNextPair(newMatchups, 0, newGroups[0]);
-                if (firstPair[0]) setCurrentPair(firstPair as [any, any]);
-                return;
-            }
-    
-            const matchups = existingData.matchups || {};
-            const groups = existingData.groups;
-            
-            console.log("Loading groups:", groups); // Debug log
-            
-            setSongs(Object.values(existingData.songs));
-            setGroups(groups);
-            setCurrentGroup(groups[0]);
-            setGroupMatchups(matchups);
-            setCurrentGroupIndex(0);
-            
-            const firstPair = await getNextPair(matchups, 0, groups[0]);
-            if (firstPair[0]) setCurrentPair(firstPair as [any, any]);
-        } else {
-            // Only generate new matchups if there are no existing ones
-            const freshSongs = await fetchAndSaveSongs(playlistId);
-            if (freshSongs.length < 2) return;
-    
-            const groups = [];
-            for (let i = 0; i < freshSongs.length; i += 6) {
-                groups.push(freshSongs.slice(i, i + 6));
-            }
-            
-            const matchups = await generateMatchups(groups, userId, playlistId);
-            
-            setSongs(freshSongs);
-            setGroups(groups);
-            setCurrentGroup(groups[0]);
-            setGroupMatchups(matchups);
-            
-            const firstPair = await getNextPair(matchups, 0, groups[0]);
-            if (firstPair[0]) setCurrentPair(firstPair as [any, any]);
-        }
-    };
-
-    initializePlaylist();
-  }, [playlistId]);
-
-  useEffect(() => {
-    if (groups.length > 0) {
-      const loadOrGenerateMatchups = async () => {
-        const userId = auth.currentUser?.uid;
-        if (!userId || !playlistId) return;
-
-        const matchupsRef = ref(db, `users/${userId}/playlists/${playlistId}/matchups`);
-        const snapshot = await get(matchupsRef);
-        
-        let currentMatchups;
-        if (snapshot.exists()) {
-          currentMatchups = snapshot.val();
-        } else {
-          currentMatchups = await generateMatchups(groups, userId, playlistId);
-        }
-        
-        setGroupMatchups(currentMatchups);
-        
-        if (!showGroupCompletion) {
-          const nextPair = await getNextPair(currentMatchups, currentGroupIndex, currentGroup);
-          
-          if (!nextPair[0]) {
-            console.log("No next pair found - showing group completion");
-            const updatedGroup = songs.filter(song => 
-              currentGroup.some(groupSong => groupSong.id === song.id)
-            );
-            const topSongs = updatedGroup
-              .sort((a, b) => b.elo - a.elo)
-              .slice(0, 2);
-            setFinalists(prev => [...prev, ...topSongs]);
-            setShowGroupCompletion(true);
-            setCurrentPair([null, null]);
-          } else {
-            setCurrentPair(nextPair as [any, any]);
-            setPreviews({ song1: null, song2: null });
-            setShowGroupCompletion(false);
-          }
-        }
-      };
-
-      loadOrGenerateMatchups();
-    }
-  }, [currentGroupIndex]);
-
   const getNextPair = async (
     matchups: { [groupIndex: number]: { [key: string]: boolean } }, 
     groupIndex: number,
-    group: any[] = currentGroup
+    group: Song[] = currentGroup
   ) => {
-    const userId = auth.currentUser?.uid;
-    if (!userId || !playlistId) return [null, null];
-
     if (!group || group.length === 0) {
         console.error("Group is empty or undefined!");
         return [null, null];
@@ -227,7 +104,7 @@ const Compare = () => {
 
   const getNextPairFromGroup = async (
     groupMatchups: { [key: string]: boolean },
-    group: any[]
+    group: Song[]
   ) => {
     const remainingMatchups = Object.entries(groupMatchups)
         .filter(([_, compared]) => compared === false);
@@ -264,7 +141,6 @@ const Compare = () => {
             direction === "left" ? song2.elo : song1.elo
         );
 
-        // Update the current group with new ELO scores
         const updatedGroup = currentGroup.map(song => {
             if (song.id === song1.id) {
                 return { ...song, elo: direction === "left" ? newWinnerElo : newLoserElo };
@@ -275,9 +151,8 @@ const Compare = () => {
             return song;
         });
 
-        console.log(song1.name, " elo: ", song1.elo, song2.name, "elo: ", song2.elo);
+        console.log(song1.name, " elo: ", song1.elo, song2.name, " elo: ", song2.elo);
         
-        // Create updates object
         const updates: { [key: string]: any } = {};
         updates[`users/${userId}/playlists/${playlistId}/songs/${song1.id}/elo`] = 
             direction === "left" ? newWinnerElo : newLoserElo;
@@ -289,7 +164,6 @@ const Compare = () => {
             await update(ref(db), updates);
             setCurrentGroup(updatedGroup);
             
-            // Update local matchups state
             setGroupMatchups(prev => ({
                 ...prev,
                 [currentGroupIndex]: {
@@ -298,7 +172,6 @@ const Compare = () => {
                 }
             }));
             
-            // Update progress after successful comparison
             setProgress(prev => ({
                 ...prev,
                 completed: prev.completed + 1
@@ -311,13 +184,11 @@ const Compare = () => {
                 },
                 updatedGroup
             );
+
             if (nextPair[0]) {
-                setCurrentPair(nextPair as [any, any]);
+                setCurrentPair(nextPair as [Song, Song]);
             } else {
-                console.log("No next pair found - showing group completion");
-                const updatedGroup = songs.filter(song => 
-                    currentGroup.some(groupSong => groupSong.id === song.id)
-                );
+                // Current group is complete, show completion screen
                 const topSongs = updatedGroup
                     .sort((a, b) => b.elo - a.elo)
                     .slice(0, 2);
@@ -331,8 +202,7 @@ const Compare = () => {
     }
   };
 
-  // Add this function to fetch iTunes preview
-  const fetchItunesPreview = async (song: any, side: 'song1' | 'song2') => {
+  const fetchItunesPreview = async (song: Song, side: 'song1' | 'song2') => {
     try {
       const query = `${song.name} ${song.artist}`;
       const itunesResult = await searchItunes(query);
@@ -347,10 +217,8 @@ const Compare = () => {
     }
   };
 
-  // Add this useEffect to fetch previews when currentPair changes
   useEffect(() => {
     if (currentPair[0] && currentPair[1]) {
-      // Try to fetch iTunes previews if Spotify previews aren't available
       if (!currentPair[0].previewUrl) {
         fetchItunesPreview(currentPair[0], 'song1');
       }
@@ -360,7 +228,6 @@ const Compare = () => {
     }
   }, [currentPair]);
 
-  // Add this useEffect to calculate progress whenever matchups change
   useEffect(() => {
     if (groupMatchups[currentGroupIndex]) {
       const currentGroupMatchups = groupMatchups[currentGroupIndex];
@@ -370,48 +237,76 @@ const Compare = () => {
     }
   }, [groupMatchups, currentGroupIndex]);
 
-  if (songs.length < 2) {
+  useEffect(() => {
+    const initializePlaylist = async () => {
+        if (!playlistId) return;
+        const songs = await fetchAndSaveSongs(playlistId);
+        const groups = [];
+        for (let i = 0; i < songs.length; i += 6) {
+            groups.push(songs.slice(i, i + 6));
+        }
+        const matchups = await generateMatchups(groups, auth.currentUser?.uid || '', playlistId);
+        setSongs(songs);
+        setGroups(groups);
+        setCurrentGroup(groups[0]);
+        setGroupMatchups(matchups);
+        
+        // Get first pair
+        const firstPair = await getNextPair(matchups, 0, groups[0]);
+        if (firstPair[0]) setCurrentPair(firstPair as [Song, Song]);
+        
+        setLoading(false);
+    };
+
+    initializePlaylist();
+  }, [playlistId]);
+
+  if (loading) {
+    return <div>Loading playlist data...</div>;
+  }
+
+  if (!songs || songs.length < 2) {
     return <div>Not enough songs in this playlist to compare.</div>;
   }
 
   if (!currentPair[0] || !currentPair[1]) {
-    console.log("Render check - no current pair");
-    console.log("showGroupCompletion:", showGroupCompletion);
-    console.log("currentGroup length:", currentGroup.length);
-    console.log("currentGroupIndex:", currentGroupIndex);
-    console.log("groups length:", groups.length);
+    if (showGroupCompletion && currentGroupIndex < groups.length) {
+        const updatedGroup = songs.filter(song => 
+            currentGroup.some(groupSong => groupSong.id === song.id)
+        );
+        const topSongs = updatedGroup
+            .sort((a, b) => b.elo - a.elo)
+            .slice(0, 2);
 
-    // Check if we should show group completion
-    if (showGroupCompletion && currentGroupIndex < groups.length) {  // Added bounds check
-      console.log("Showing group completion screen");
-      const updatedGroup = songs.filter(song => 
-        currentGroup.some(groupSong => groupSong.id === song.id)
-      );
-      const topSongs = updatedGroup
-        .sort((a, b) => b.elo - a.elo)
-        .slice(0, 2);
-
-      return <GroupCompletion
-        qualifiers={topSongs}
-        allGroupSongs={updatedGroup.sort((a, b) => b.elo - a.elo)}
-        onContinue={() => {
-          console.log("Continue clicked");
-          if (currentGroupIndex < groups.length - 1) {
-            const nextGroupIndex = currentGroupIndex + 1;
-            setCurrentGroupIndex(nextGroupIndex);
-            setCurrentGroup(groups[nextGroupIndex]);
-            setShowGroupCompletion(false);
-            setCurrentPair([null, null]); // Reset current pair
-          } else {
-            // Start finals
-            navigate(`/finals/${playlistId}`);
-          }
-        }}
-        isLastGroup={currentGroupIndex === groups.length - 1}
-      />;
+        return <GroupCompletion
+            qualifiers={topSongs}
+            allGroupSongs={updatedGroup.sort((a, b) => b.elo - a.elo)}
+            onContinue={async () => {
+                if (currentGroupIndex < groups.length - 1) {
+                    const nextGroupIndex = currentGroupIndex + 1;
+                    setCurrentGroupIndex(nextGroupIndex);
+                    setCurrentGroup(groups[nextGroupIndex]);
+                    setShowGroupCompletion(false);
+                    
+                    // Get the first pair for the next group
+                    const nextGroupPair = await getNextPair(groupMatchups, nextGroupIndex, groups[nextGroupIndex]);
+                    if (nextGroupPair[0]) {
+                        setCurrentPair(nextGroupPair as [Song, Song]);
+                    }
+                } else {
+                    // Save finalists to Firebase before navigating
+                    const userId = auth.currentUser?.uid;
+                    if (userId && playlistId) {
+                        const finalistsRef = ref(db, `users/${userId}/playlists/${playlistId}/finalists`);
+                        await set(finalistsRef, finalists);
+                    }
+                    navigate(`/finals/${playlistId}`);
+                }
+            }}
+            isLastGroup={currentGroupIndex === groups.length - 1}
+        />;
     }
     
-    // If we're at the end of all groups, show final rankings
     if (currentGroupIndex >= groups.length && finalists.length > 0) {
       return (
         <div>
@@ -429,20 +324,15 @@ const Compare = () => {
       );
     }
 
-    if (showGroupCompletion) {
-      console.log("Should be showing group completion but reached fallback");
-    }
-
     return <div>No more matchups to compare!</div>;
   }
 
   return (
     <div className="flex flex-col items-center min-h-screen p-4 gap-4">
-      {/* Progress indicator */}
       <div className="w-full max-w-md mb-4">
         <div className="flex justify-between mb-2">
           <span className="text-sm text-gray-600">Group {currentGroupIndex + 1}: </span>
-          <span className="text-sm text-gray-600">{progress.completed} of {progress.total} comparisons</span>
+          <span className="text-sm text-gray-600">{progress.completed + 1} of {progress.total} comparisons</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2.5">
           <div 
@@ -452,10 +342,7 @@ const Compare = () => {
         </div>
       </div>
 
-      {/* First Song */}
-      <div onClick={() => {
-        handleSwipe("left");
-      }} className="cursor-pointer hover:opacity-75 transition-opacity">
+      <div onClick={() => handleSwipe("left")} className="cursor-pointer hover:opacity-75 transition-opacity">
         <img 
           src={currentPair[0].albumCover} 
           alt={currentPair[0].name}
@@ -473,10 +360,8 @@ const Compare = () => {
       <h2 className="text-xl font-bold">{currentPair[0].name}</h2>
       <p className="text-gray-600">{currentPair[0].artist} - {currentPair[0].album}</p>
 
-      {/* VS Divider */}
       <div className="text-2xl font-bold text-gray-400 my-2">VS</div>
 
-      {/* Second Song */}
       <h2 className="text-xl font-bold">{currentPair[1].name}</h2>
       <p className="text-gray-600">{currentPair[1].artist} - {currentPair[1].album}</p>
       {(currentPair[1].previewUrl || previews.song2) && (
@@ -486,9 +371,7 @@ const Compare = () => {
           className="w-32"
         />
       )}
-      <div onClick={() => {
-        handleSwipe("right");
-      }} className="cursor-pointer hover:opacity-75 transition-opacity">
+      <div onClick={() => handleSwipe("right")} className="cursor-pointer hover:opacity-75 transition-opacity">
         <img 
           src={currentPair[1].albumCover} 
           alt={currentPair[1].name}
