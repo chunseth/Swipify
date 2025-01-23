@@ -556,3 +556,29 @@ audio::-webkit-media-controls-toggle-closed-captions-button {
   color: white;
   transform: none;
 }
+
+.audio-container {
+  margin: 10px 0;
+}
+
+.play-button {
+  background: #1DB954;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.play-button:hover {
+  transform: scale(1.1);
+}
+
+.play-button:active {
+  transform: scale(0.95);
+}
