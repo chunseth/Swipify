@@ -120,18 +120,17 @@ const Compare = () => {
         setCurrentGroup(groups[0]); // Set initial group
         setGroupMatchups(matchups);
       }
+
+      // After initialization, get the first pair
+      const initialMatchups = snapshot.exists() ? snapshot.val().matchups : await generateMatchups(groups, userId, playlistId);
+      const firstPair = await getNextPair(initialMatchups, 0);
+      if (firstPair[0]) {
+        setCurrentPair(firstPair as [any, any]);
+      }
     };
 
     initializePlaylist();
   }, [playlistId]);
-
-  useEffect(() => {
-    if (songs.length > 0) {
-      const groups = groupSongs(songs);
-      setGroups(groups);
-      setCurrentGroupIndex(0);
-    }
-  }, [songs]);
 
   useEffect(() => {
     if (groups.length > 0) {
@@ -142,7 +141,7 @@ const Compare = () => {
         const matchupsRef = ref(db, `users/${userId}/playlists/${playlistId}/matchups`);
         const snapshot = await get(matchupsRef);
         
-        console.log("Current Group Index:", currentGroupIndex);
+        console.log("Loading matchups for group:", currentGroupIndex);
         console.log("Current Group:", currentGroup);
         console.log("Firebase Matchups:", snapshot.val());
         
@@ -156,7 +155,7 @@ const Compare = () => {
         setGroupMatchups(currentMatchups);
         
         if (!showGroupCompletion) {
-          const nextPair = await getNextPair(currentMatchups);
+          const nextPair = await getNextPair(currentMatchups, currentGroupIndex);
           console.log("Next Pair:", nextPair);
           
           if (!nextPair[0]) {
@@ -179,17 +178,29 @@ const Compare = () => {
 
       loadOrGenerateMatchups();
     }
-  }, [groups, currentGroupIndex, currentGroup]);
+  }, [currentGroupIndex]);
 
-  const getNextPair = async (matchups: { [groupIndex: number]: { [key: string]: boolean } }) => {
+  const getNextPair = async (
+    matchups: { [groupIndex: number]: { [key: string]: boolean } }, 
+    groupIndex: number
+  ) => {
     const userId = auth.currentUser?.uid;
     if (!userId || !playlistId) return [null, null];
 
-    const currentMatchups = matchups[currentGroupIndex];
-    if (!currentMatchups) return [null, null];
+    // Guard against invalid group index
+    if (groupIndex < 0 || !groups[groupIndex]) {
+      console.log("Invalid group index:", groupIndex);
+      return [null, null];
+    }
+
+    const currentMatchups = matchups[groupIndex];
+    if (!currentMatchups) {
+      console.log("No matchups found for group:", groupIndex);
+      return [null, null];
+    }
 
     const remainingMatchups = Object.entries(currentMatchups).filter(([_, compared]) => !compared);
-    console.log("Remaining Matchups for group", currentGroupIndex, ":", remainingMatchups);
+    console.log("Remaining Matchups for group", groupIndex, ":", remainingMatchups);
 
     if (remainingMatchups.length > 0) {
       const randomIndex = Math.floor(Math.random() * remainingMatchups.length);
@@ -204,30 +215,13 @@ const Compare = () => {
         const song1 = allSongs.find((song: any) => song.id === songId1);
         const song2 = allSongs.find((song: any) => song.id === songId2);
         
-        console.log("Found Songs for group", currentGroupIndex, ":", song1, song2);
+        console.log("Found Songs for group", groupIndex, ":", song1, song2);
         if (song1 && song2) {
           return [song1, song2];
         }
       }
     }
 
-    // If we get here, the current group is complete
-    if (currentGroupIndex < groups.length - 1) {
-      // Move to next group
-      setCurrentGroupIndex(prev => prev + 1);
-      setCurrentGroup(groups[currentGroupIndex + 1]);
-      
-      // Check for matchups in the next group
-      const nextGroupMatchups = matchups[currentGroupIndex + 1];
-      if (nextGroupMatchups) {
-        const nextGroupRemaining = Object.entries(nextGroupMatchups).filter(([_, compared]) => !compared);
-        if (nextGroupRemaining.length > 0) {
-          // Recursively get next pair from new group
-          return getNextPair(matchups);
-        }
-      }
-    }
-    
     return [null, null];
   };
 
@@ -290,7 +284,7 @@ const Compare = () => {
             ...groupMatchups[currentGroupIndex],
             [matchupKey]: true
           }
-        });
+        }, currentGroupIndex);
 
         if (!nextPair[0]) {
           console.log("No next pair after swipe - showing group completion");
@@ -366,7 +360,7 @@ const Compare = () => {
     console.log("groups length:", groups.length);
 
     // Check if we should show group completion
-    if (showGroupCompletion) {
+    if (showGroupCompletion && currentGroupIndex < groups.length) {  // Added bounds check
       console.log("Showing group completion screen");
       const updatedGroup = songs.filter(song => 
         currentGroup.some(groupSong => groupSong.id === song.id)
@@ -381,8 +375,9 @@ const Compare = () => {
         onContinue={() => {
           console.log("Continue clicked");
           if (currentGroupIndex < groups.length - 1) {
-            setCurrentGroupIndex(prev => prev + 1);
-            setCurrentGroup(groups[currentGroupIndex + 1]);
+            const nextGroupIndex = currentGroupIndex + 1;
+            setCurrentGroupIndex(nextGroupIndex);
+            setCurrentGroup(groups[nextGroupIndex]);
             setShowGroupCompletion(false);
             setCurrentPair([null, null]); // Reset current pair
           } else {
@@ -395,7 +390,7 @@ const Compare = () => {
     }
     
     // If we're at the end of all groups, show final rankings
-    if (currentGroupIndex === groups.length && finalists.length > 0) {
+    if (currentGroupIndex >= groups.length && finalists.length > 0) {
       return (
         <div>
           <h1>Final Rankings</h1>
