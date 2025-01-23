@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { ref, get, update, set } from "firebase/database";
 import { db, auth } from "../services/firebase";
-import { useSwipeable } from "react-swipeable";
 import SpotifyWebApi from "spotify-web-api-js";
 import { generateMatchups } from "../utils/generateMatchups";
 import { groupSongs } from "../utils/groupSongs";
@@ -202,21 +201,14 @@ const Compare = () => {
       const song2Elo = song2.elo || 1000;
 
       const { newWinnerElo, newLoserElo } = calculateElo(
-        direction === "right" ? song1Elo : song2Elo,
-        direction === "right" ? song2Elo : song1Elo
+        direction === "left" ? song1Elo : song2Elo,
+        direction === "left" ? song2Elo : song1Elo
       );
 
-      // Update Firebase using update
-      update(ref(db, `users/${userId}/playlists/${playlistId}/songs`), {
-        [song1.id]: {
-          ...song1,
-          elo: direction === "right" ? newWinnerElo : newLoserElo,
-        },
-        [song2.id]: {
-          ...song2,
-          elo: direction === "right" ? newLoserElo : newWinnerElo,
-        }
-      });
+      // Update Firebase
+      const updates: any = {};
+      updates[`users/${userId}/playlists/${playlistId}/songs/${song1.id}/elo`] = direction === "left" ? newWinnerElo : newLoserElo;
+      updates[`users/${userId}/playlists/${playlistId}/songs/${song2.id}/elo`] = direction === "left" ? newLoserElo : newWinnerElo;
 
       // Update matchups in Firebase
       const matchupKey = `${song1.id}_${song2.id}`;
@@ -225,7 +217,12 @@ const Compare = () => {
         [matchupKey]: true
       });
 
-      // Get and set next pair
+      setProgress(prev => ({
+        ...prev,
+        completed: prev.completed + 1
+      }));
+
+      // Get next pair
       const nextPair = await getNextPair(groupMatchups);
       if (!nextPair[0]) {
         // Group completed, advance top 2 songs
@@ -247,11 +244,6 @@ const Compare = () => {
       }
     }
   };
-
-  const handlers = useSwipeable({
-    onSwipedLeft: () => handleSwipe("left"),
-    onSwipedRight: () => handleSwipe("right"),
-  });
 
   // Add this function to fetch iTunes preview
   const fetchItunesPreview = async (song: any, side: 'song1' | 'song2') => {
@@ -318,13 +310,9 @@ const Compare = () => {
   }
 
   return (
-    <div {...handlers} className="flex flex-col items-center justify-center min-h-screen p-4">
-      <h1 className="text-2xl font-bold mb-8">Compare Songs</h1>
-
-      <p className="mt-8 text-gray-500">Swipe left or right to choose!</p>
-      
-      {/* Add progress indicators */}
-      <div className="w-full max-w-md mb-8">
+    <div className="flex flex-col items-center min-h-screen p-4 gap-4">
+      {/* Progress indicator */}
+      <div className="w-full max-w-md mb-4">
         <div className="flex justify-between mb-2">
           <span className="text-sm text-gray-600">Group {currentGroupIndex + 1}: </span>
           <span className="text-sm text-gray-600">{progress.completed} of {progress.total} comparisons</span>
@@ -337,38 +325,55 @@ const Compare = () => {
         </div>
       </div>
 
-      <div className="flex gap-8">
-        <div className="flex flex-col items-center w-64">
-          <img 
-            src={currentPair[0].albumCover} 
-            alt={currentPair[0].name}
-            className="w-48 h-48 rounded-lg shadow-lg object-cover flex-shrink-0" 
-            style={{ maxWidth: '18rem', maxHeight: '18rem' }}
-          />
-          <header>{previews.song1 && <audio controls src={previews.song1} />}
-          {!previews.song1 && currentPair[0].previewUrl && (
-            <audio controls src={currentPair[0].previewUrl} />
-          )}</header>
-          <h2 className="mt-4 text-xl font-bold">{currentPair[0].name}</h2>
-          <h3 className="text-gray-600">{currentPair[0].artist} - {currentPair[0].album}</h3>
-        </div>
+      {/* First Song */}
+      <img 
+        src={currentPair[0].albumCover} 
+        alt={currentPair[0].name}
+        className="w-32 h-32 rounded-lg shadow-lg object-cover" 
+        style={{ maxWidth: '16rem', maxHeight: '16rem' }} 
+      />
+      <header>{(currentPair[0].previewUrl || previews.song1) && (
+        <audio 
+          controls 
+          src={currentPair[0].previewUrl || previews.song1 || ''} 
+          className="w-32"
+        />
+      )}</header>
+      <h2 className="text-xl font-bold">{currentPair[0].name}</h2>
+      <p className="text-gray-600">{currentPair[0].artist} - {currentPair[0].album}</p>
 
-        <div className="flex flex-col items-center w-64">
-          <img 
-            src={currentPair[1].albumCover} 
-            alt={currentPair[1].name}
-            className="w-48 h-48 rounded-lg shadow-lg object-cover flex-shrink-0" 
-            style={{ maxWidth: '18rem', maxHeight: '18rem' }}
-          />
-          <header>{previews.song2 && <audio controls src={previews.song2} />}
-          {!previews.song2 && currentPair[1].previewUrl && (
-            <audio controls src={currentPair[1].previewUrl} />
-          )}</header>
-          <h2 className="mt-4 text-xl font-bold">{currentPair[1].name}</h2>
-          <h3 className="text-gray-600">{currentPair[1].artist} - {currentPair[1].album}</h3>
-          
-        </div>
+      {/* Choice Buttons */}
+      <div className="flex gap-4 my-4">
+        <button
+          onClick={() => handleSwipe("left")}
+          className="px-8 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+        >
+          Choose {currentPair[0].name}
+        </button>
+        <button
+          onClick={() => handleSwipe("right")}
+          className="px-8 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+        >
+          Choose {currentPair[1].name}
+        </button>
       </div>
+
+      {/* Second Song */}
+      <h2 className="text-xl font-bold">{currentPair[1].name}</h2>
+      <p className="text-gray-600">{currentPair[1].artist} - {currentPair[1].album}</p>
+      <header>{(currentPair[1].previewUrl || previews.song2) && (
+        <audio 
+          controls 
+          src={currentPair[1].previewUrl || previews.song2 || ''} 
+          className="w-32"
+        />
+      )}</header>
+      <img 
+        src={currentPair[1].albumCover} 
+        alt={currentPair[1].name}
+        className="w-32 h-32 rounded-lg shadow-lg object-cover" 
+        style={{ maxWidth: '16rem', maxHeight: '16rem' }} 
+      />
     </div>
   );
 };
