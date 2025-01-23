@@ -1,4 +1,3 @@
-import React from "react";
 import { useSwipeable } from "react-swipeable";
 
 const SongComparison = ({ song1, song2, onSwipe }: { song1: any; song2: any; onSwipe: (direction: "left" | "right") => void }) => {
