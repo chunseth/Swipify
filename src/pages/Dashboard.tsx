@@ -1,9 +1,7 @@
-import { useState } from 'react';
 import useSpotify from "../hooks/useSpotify";
 import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
-  const [isNavExpanded, setIsNavExpanded] = useState(false);
   const playlists = useSpotify();
   const navigate = useNavigate();
 
@@ -19,7 +17,7 @@ const Dashboard = () => {
     <div>
       <h1>Dashboard</h1>
       <h2 className="dashboard-title">Your Playlists</h2>
-        <div className={`dashboard-container ${isNavExpanded ? 'nav-expanded' : ''}`}>
+        <div className="dashboard-container">
           <div className="playlists-grid">
             {
             <div style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}>
