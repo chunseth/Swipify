@@ -13,13 +13,13 @@ import { useNavigate } from "react-router-dom";
 const spotifyApi = new SpotifyWebApi();
 
 interface Song {
-  id: string;
-  name: string;
-  artist: string;
-  album: string;
-  albumCover: string;
-  previewUrl: string | null;
-  elo: number;
+    id: string;
+    name: string;
+    artist: string;
+    album: string;
+    albumCover: string;
+    previewUrl: string | null;
+    elo: number;
 }
 
 const Compare = () => {
@@ -47,116 +47,118 @@ const Compare = () => {
     // Check for existing songs first
     const playlistRef = ref(db, `users/${userId}/playlists/${playlistId}/songs`);
     const snapshot = await get(playlistRef);
-    if (snapshot.exists()) {
-      return Object.values(snapshot.val());
-    }
+    const existingSongs = snapshot.exists() ? snapshot.val() : {};
 
-    // If no existing songs, fetch from Spotify
     const accessToken = localStorage.getItem("spotifyAccessToken");
     if (!accessToken) {
-      console.error("No Spotify access token found.");
-      return [];
+        console.error("No Spotify access token found.");
+        return [];
     }
 
     spotifyApi.setAccessToken(accessToken);
     try {
-      const response = await spotifyApi.getPlaylistTracks(playlistId);
-      const tracks = response.items
-        .map((item) => {
-          if ('artists' in item.track) {
-            return {
-              id: item.track.id,
-              name: item.track.name,
-              artist: item.track.artists[0].name,
-              album: item.track.album.name,
-              albumCover: item.track.album.images[0].url,
-              previewUrl: item.track.preview_url,
-              elo: 1000,
-            };
-          }
-          return null;
-        })
-        .filter(Boolean);
+        const response = await spotifyApi.getPlaylistTracks(playlistId);
+        const tracks = response.items
+            .map((item) => {
+                if ('artists' in item.track) {
+                    const existingSong = existingSongs[item.track.id];
+                    return {
+                        id: item.track.id,
+                        name: item.track.name,
+                        artist: item.track.artists[0].name,
+                        album: item.track.album.name,
+                        albumCover: item.track.album.images[0].url,
+                        previewUrl: item.track.preview_url,
+                        elo: existingSong ? existingSong.elo : 1000,
+                    };
+                }
+                return null;
+            })
+            .filter(Boolean) as Song[];
 
-      // Only save to Firebase if we didn't find existing songs
-      await set(playlistRef, tracks);
-      return tracks;
+        // Save to Firebase
+        const updates: { [key: string]: any } = {};
+        tracks.forEach((track: any) => {
+            updates[track.id] = track;
+        });
+        await set(playlistRef, updates);
+        
+        return tracks;
     } catch (error) {
-      console.error("Error:", error);
-      return [];
+        console.error("Error:", error);
+        return [];
     }
   };
 
   useEffect(() => {
     const initializePlaylist = async () => {
-      const userId = auth.currentUser?.uid;
-      if (!userId || !playlistId) return;
-
-      // Check existing data in Firebase
-      const playlistRef = ref(db, `users/${userId}/playlists/${playlistId}`);
-      const snapshot = await get(playlistRef);
-      
-      if (snapshot.exists()) {
-        const existingData = snapshot.val();
-        console.log("Existing Firebase data:", existingData); // Debug log
+        const userId = auth.currentUser?.uid;
+        if (!userId || !playlistId) return;
+    
+        // Check existing data in Firebase
+        const playlistRef = ref(db, `users/${userId}/playlists/${playlistId}`);
+        const snapshot = await get(playlistRef);
         
-        // Ensure we have all required data
-        if (!existingData.songs || !existingData.groups) {
-            // If missing critical data, reinitialize
-            const freshSongs = await fetchAndSaveSongs(playlistId);
-            if (freshSongs.length < 2) return;
-
-            const newGroups = [];
-            for (let i = 0; i < freshSongs.length; i += 6) {
-                newGroups.push(freshSongs.slice(i, i + 6));
+        if (snapshot.exists()) {
+            const existingData = snapshot.val();
+            
+            // Ensure we have all required data
+            if (!existingData.songs || !existingData.groups) {
+                // If missing critical data, reinitialize
+                const freshSongs = await fetchAndSaveSongs(playlistId);
+                if (freshSongs.length < 2) return;
+    
+                const newGroups = [];
+                for (let i = 0; i < freshSongs.length; i += 6) {
+                    newGroups.push(freshSongs.slice(i, i + 6));
+                }
+                
+                const newMatchups = await generateMatchups(newGroups, userId, playlistId);
+                
+                setSongs(freshSongs);
+                setGroups(newGroups);
+                setCurrentGroup(newGroups[0]);
+                setGroupMatchups(newMatchups);
+                setCurrentGroupIndex(0);
+                
+                const firstPair = await getNextPair(newMatchups, 0, newGroups[0]);
+                if (firstPair[0]) setCurrentPair(firstPair as [any, any]);
+                return;
             }
+    
+            const matchups = existingData.matchups || {};
+            const groups = existingData.groups;
             
-            const newMatchups = await generateMatchups(newGroups, userId, playlistId);
+            console.log("Loading groups:", groups); // Debug log
             
-            setSongs(freshSongs);
-            setGroups(newGroups);
-            setCurrentGroup(newGroups[0]);
-            setGroupMatchups(newMatchups);
+            setSongs(Object.values(existingData.songs));
+            setGroups(groups);
+            setCurrentGroup(groups[0]);
+            setGroupMatchups(matchups);
             setCurrentGroupIndex(0);
             
-            const firstPair = await getNextPair(newMatchups, 0, newGroups[0]);
+            const firstPair = await getNextPair(matchups, 0, groups[0]);
             if (firstPair[0]) setCurrentPair(firstPair as [any, any]);
-            return;
+        } else {
+            // Only generate new matchups if there are no existing ones
+            const freshSongs = await fetchAndSaveSongs(playlistId);
+            if (freshSongs.length < 2) return;
+    
+            const groups = [];
+            for (let i = 0; i < freshSongs.length; i += 6) {
+                groups.push(freshSongs.slice(i, i + 6));
+            }
+            
+            const matchups = await generateMatchups(groups, userId, playlistId);
+            
+            setSongs(freshSongs);
+            setGroups(groups);
+            setCurrentGroup(groups[0]);
+            setGroupMatchups(matchups);
+            
+            const firstPair = await getNextPair(matchups, 0, groups[0]);
+            if (firstPair[0]) setCurrentPair(firstPair as [any, any]);
         }
-
-        const matchups = existingData.matchups || {};
-        const groups = existingData.groups;
-        
-        console.log("Loading groups:", groups); // Debug log
-        
-        setSongs(Object.values(existingData.songs));
-        setGroups(groups);
-        setCurrentGroup(groups[0]);
-        setGroupMatchups(matchups);
-        setCurrentGroupIndex(0);
-        
-        const firstPair = await getNextPair(matchups, 0, groups[0]);
-        if (firstPair[0]) setCurrentPair(firstPair as [any, any]);
-      } else {
-        // Only generate new matchups if there are no existing ones
-        const freshSongs = await fetchAndSaveSongs(playlistId);
-        if (freshSongs.length < 2) return;
-
-        const groups = [];
-        for (let i = 0; i < freshSongs.length; i += 6) {
-          groups.push(freshSongs.slice(i, i + 6));
-        }
-        
-        const matchups = await generateMatchups(groups, userId, playlistId);
-        
-        setSongs(freshSongs);
-        setGroups(groups);
-        setCurrentGroup(groups[0]);
-        setGroupMatchups(matchups);
-        
-        const firstPair = await getNextPair(matchups, 0, groups[0]);
-        if (firstPair[0]) setCurrentPair(firstPair as [any, any]);
-      }
     };
 
     initializePlaylist();
@@ -171,10 +173,6 @@ const Compare = () => {
         const matchupsRef = ref(db, `users/${userId}/playlists/${playlistId}/matchups`);
         const snapshot = await get(matchupsRef);
         
-        console.log("Loading matchups for group:", currentGroupIndex);
-        console.log("Current Group:", currentGroup);
-        console.log("Firebase Matchups:", snapshot.val());
-        
         let currentMatchups;
         if (snapshot.exists()) {
           currentMatchups = snapshot.val();
@@ -186,7 +184,6 @@ const Compare = () => {
         
         if (!showGroupCompletion) {
           const nextPair = await getNextPair(currentMatchups, currentGroupIndex, currentGroup);
-          console.log("Next Pair:", nextPair);
           
           if (!nextPair[0]) {
             console.log("No next pair found - showing group completion");
@@ -219,11 +216,9 @@ const Compare = () => {
     const userId = auth.currentUser?.uid;
     if (!userId || !playlistId) return [null, null];
 
-    // Debug group parameter
-    console.log("Group passed to getNextPair:", group);
     if (!group || group.length === 0) {
-      console.error("Group is empty or undefined!");
-      return [null, null];
+        console.error("Group is empty or undefined!");
+        return [null, null];
     }
 
     const currentMatchups = matchups[groupIndex] || {};
@@ -236,34 +231,34 @@ const Compare = () => {
   ) => {
     const remainingMatchups = Object.entries(groupMatchups)
         .filter(([_, compared]) => compared === false);
+    
+    console.log("Remaining matchups:", {
+        total: Object.keys(groupMatchups).length,
+        remaining: remainingMatchups.length,
+        completed: Object.values(groupMatchups).filter(Boolean).length
+    });
 
     if (remainingMatchups.length > 0) {
         const randomIndex = Math.floor(Math.random() * remainingMatchups.length);
         const [key] = remainingMatchups[randomIndex];
         const [songId1, songId2] = key.split("_");
 
-      const song1 = group.find(song => song.id === songId1);
-      const song2 = group.find(song => song.id === songId2);
-      
-      if (song1 && song2) {
-        return [song1, song2];
-      }
+        const song1 = group.find(song => song.id === songId1);
+        const song2 = group.find(song => song.id === songId2);
+        
+        if (song1 && song2) {
+            return [song1, song2];
+        }
     }
 
     return [null, null];
   };
 
   const handleSwipe = async (direction: "left" | "right") => {
-    console.log("handleSwipe started with direction:", direction);
-    
     const [song1, song2] = currentPair;
-    console.log("Current pair:", { song1, song2 });
-    
     const userId = auth.currentUser?.uid;
-    console.log("userId:", userId);
     
     if (userId && playlistId && song1 && song2) {
-        console.log("All required data present, proceeding with update");
         const { newWinnerElo, newLoserElo } = calculateElo(
             direction === "left" ? song1.elo : song2.elo,
             direction === "left" ? song2.elo : song1.elo
@@ -279,6 +274,8 @@ const Compare = () => {
             }
             return song;
         });
+
+        console.log(song1.name, " elo: ", song1.elo, song2.name, "elo: ", song2.elo);
         
         // Create updates object
         const updates: { [key: string]: any } = {};
@@ -290,14 +287,43 @@ const Compare = () => {
 
         try {
             await update(ref(db), updates);
-            
-            // Update local state with new ELO scores
             setCurrentGroup(updatedGroup);
             
-            // Get next pair using updated group
-            const nextPair = await getNextPairFromGroup(groupMatchups[currentGroupIndex], updatedGroup);
+            // Update local matchups state
+            setGroupMatchups(prev => ({
+                ...prev,
+                [currentGroupIndex]: {
+                    ...prev[currentGroupIndex],
+                    [`${song1.id}_${song2.id}`]: true
+                }
+            }));
+            
+            // Update progress after successful comparison
+            setProgress(prev => ({
+                ...prev,
+                completed: prev.completed + 1
+            }));
+            
+            const nextPair = await getNextPairFromGroup(
+                {
+                    ...groupMatchups[currentGroupIndex],
+                    [`${song1.id}_${song2.id}`]: true
+                },
+                updatedGroup
+            );
             if (nextPair[0]) {
                 setCurrentPair(nextPair as [any, any]);
+            } else {
+                console.log("No next pair found - showing group completion");
+                const updatedGroup = songs.filter(song => 
+                    currentGroup.some(groupSong => groupSong.id === song.id)
+                );
+                const topSongs = updatedGroup
+                    .sort((a, b) => b.elo - a.elo)
+                    .slice(0, 2);
+                setFinalists(prev => [...prev, ...topSongs]);
+                setShowGroupCompletion(true);
+                setCurrentPair([null, null]);
             }
         } catch (error) {
             console.error("Error updating comparison:", error);
@@ -428,7 +454,6 @@ const Compare = () => {
 
       {/* First Song */}
       <div onClick={() => {
-        console.log("Click detected on song:", "left");
         handleSwipe("left");
       }} className="cursor-pointer hover:opacity-75 transition-opacity">
         <img 
@@ -462,7 +487,6 @@ const Compare = () => {
         />
       )}
       <div onClick={() => {
-        console.log("Click detected on song:", "right");
         handleSwipe("right");
       }} className="cursor-pointer hover:opacity-75 transition-opacity">
         <img 
