@@ -89,18 +89,17 @@ const Compare = () => {
     }
   };
 
-  const handleAudioPlay = async (event: React.MouseEvent<HTMLAudioElement>, songNumber: 'song1' | 'song2') => {
-    event.preventDefault();
-    const audio = event.currentTarget;
+  const handleAudioPlay = async (_src: string, songNumber: 'song1' | 'song2') => {
+    const audio = document.getElementById(`audio-${songNumber}`) as HTMLAudioElement;
     
     try {
       if (isPlaying[songNumber]) {
-        await audio.pause();
+        audio.pause();
         setIsPlaying(prev => ({ ...prev, [songNumber]: false }));
       } else {
         // Pause other audio if playing
         const otherSong = songNumber === 'song1' ? 'song2' : 'song1';
-        const otherAudio = document.querySelector(`[data-song="${otherSong}"]`) as HTMLAudioElement;
+        const otherAudio = document.getElementById(`audio-${otherSong}`) as HTMLAudioElement;
         if (otherAudio) {
           otherAudio.pause();
           setIsPlaying(prev => ({ ...prev, [otherSong]: false }));
@@ -375,14 +374,22 @@ const Compare = () => {
               />
             </div>
             {(currentPair[0].previewUrl || previews.song1) && (
-              <audio 
-                controls
-                playsInline
-                preload="metadata"
-                data-song="song1"
-                onClick={(e) => handleAudioPlay(e, 'song1')}
-                src={currentPair[0].previewUrl || previews.song1 || ''} 
-              />
+              <div className="audio-container">
+                <button 
+                  onClick={() => handleAudioPlay(currentPair[0]?.previewUrl || previews.song1 || '', 'song1')}
+                  className="play-button"
+                >
+                  {isPlaying.song1 ? '⏸' : '▶️'}
+                </button>
+                <audio 
+                  id="audio-song1"
+                  playsInline
+                  preload="metadata"
+                  data-song="song1"
+                  src={currentPair[0].previewUrl || previews.song1 || ''} 
+                  style={{ display: 'none' }}
+                />
+              </div>
             )}
             <h3>{currentPair[0].name}</h3>
             <p>{currentPair[0].artist} - {currentPair[0].album}</p>
@@ -395,14 +402,22 @@ const Compare = () => {
             <h3>{currentPair[1].name}</h3>
             <p>{currentPair[1].artist} - {currentPair[1].album}</p>
             {(currentPair[1].previewUrl || previews.song2) && (
-              <audio 
-                controls
-                playsInline
-                preload="metadata"
-                data-song="song2"
-                onClick={(e) => handleAudioPlay(e, 'song2')}
-                src={currentPair[1].previewUrl || previews.song2 || ''} 
-              />
+              <div className="audio-container">
+                <button 
+                  onClick={() => handleAudioPlay(currentPair[1]?.previewUrl || previews.song2 || '', 'song2')}
+                  className="play-button"
+                >
+                  {isPlaying.song2 ? '⏸' : '▶️'}
+                </button>
+                <audio 
+                  id="audio-song2"
+                  playsInline
+                  preload="metadata"
+                  data-song="song2"
+                  src={currentPair[1].previewUrl || previews.song2 || ''} 
+                  style={{ display: 'none' }}
+                />
+              </div>
             )}
             <div onClick={() => handleSwipe("right")} className="album-cover">
               <img 
