@@ -224,7 +224,7 @@ const Compare = () => {
 
       // Update matchups in Firebase
       const matchupKey = `${song1.id}_${song2.id}`;
-      const matchupsRef = ref(db, `users/${userId}/playlists/${playlistId}/matchups`);
+      const matchupsRef = ref(db, `users/${userId}/playlists/${playlistId}/matchups/${currentGroupIndex}`);
       update(matchupsRef, {
         [matchupKey]: true
       });
