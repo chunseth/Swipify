@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import SpotifyWebApi from "spotify-web-api-js";
 import { ref, set } from "firebase/database";
 import { db, auth } from "../services/firebase";

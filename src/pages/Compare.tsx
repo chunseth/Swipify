@@ -1,14 +1,14 @@
 // Compare.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import SpotifyWebApi from "spotify-web-api-js";
-import { searchItunes } from "../utils/itunesSearch";
-import { useSwipeable } from "react-swipeable";
-import { ref, set, get, update } from "firebase/database";
+import { ref, get, update, set } from "firebase/database";
 import { db, auth } from "../services/firebase";
+import { useSwipeable } from "react-swipeable";
+import SpotifyWebApi from "spotify-web-api-js";
 import { generateMatchups } from "../utils/generateMatchups";
 import { groupSongs } from "../utils/groupSongs";
 import { calculateElo } from "../utils/eloCalculator";
+import { searchItunes } from "../utils/itunesSearch";
 
 const spotifyApi = new SpotifyWebApi();
 
@@ -168,7 +168,7 @@ const Compare = () => {
     const currentMatchups = matchups[currentGroupIndex];
     if (!currentMatchups) return [null, null];
 
-    const remainingMatchups = Object.entries(currentMatchups).filter(([key, compared]) => !compared);
+    const remainingMatchups = Object.entries(currentMatchups).filter(([_, compared]) => !compared);
     console.log("Remaining Matchups for group", currentGroupIndex, ":", remainingMatchups);
 
     if (remainingMatchups.length > 0) {
@@ -198,10 +198,6 @@ const Compare = () => {
     const userId = auth.currentUser?.uid;
     
     if (userId && playlistId && song1 && song2) {
-      // Update using the exact path to existing songs
-      const song1Ref = ref(db, `users/${userId}/playlists/${playlistId}/songs/${song1.id}`);
-      const song2Ref = ref(db, `users/${userId}/playlists/${playlistId}/songs/${song2.id}`);
-
       const song1Elo = song1.elo || 1000;
       const song2Elo = song2.elo || 1000;
 
@@ -225,7 +221,7 @@ const Compare = () => {
       // Update matchups in Firebase
       const matchupKey = `${song1.id}_${song2.id}`;
       const matchupsRef = ref(db, `users/${userId}/playlists/${playlistId}/matchups/${currentGroupIndex}`);
-      update(matchupsRef, {
+      await update(matchupsRef, {
         [matchupKey]: true
       });
 

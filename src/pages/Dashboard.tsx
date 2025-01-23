@@ -1,4 +1,3 @@
-import React from "react";
 import useSpotify from "../hooks/useSpotify";
 import { useNavigate } from "react-router-dom";
 
