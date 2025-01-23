@@ -26,7 +26,7 @@ const Dashboard = () => {
                   <img
                     src={playlist.images?.[0]?.url || '/default-playlist.png'}
                     alt={playlist.name}
-                    style={{ width: "150px", height: "150px", borderRadius: "8px" }}
+                    style={{ width: "125px", height: "125px", borderRadius: "8px" }}
                     onClick={() => handlePlaylistSelect(playlist.id)}
                   />
                   <p style={{ marginTop: "8px", fontWeight: "bold" }}>{playlist.name}</p>

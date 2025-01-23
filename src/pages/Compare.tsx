@@ -328,56 +328,64 @@ const Compare = () => {
   }
 
   return (
-    <div className="flex flex-col items-center min-h-screen p-4 gap-4">
-      <div className="w-full max-w-md mb-4">
-        <div className="flex justify-between mb-2">
-          <span className="text-sm text-gray-600">Group {currentGroupIndex + 1}: </span>
-          <span className="text-sm text-gray-600">{progress.completed + 1} of {progress.total} comparisons</span>
+    <div className="dashboard-container">
+      <div className="compare-content">
+        <div className="progress-bar">
+          <div className="flex justify-between mb-2">
+            <span className="text-sm text-gray-600">Group {currentGroupIndex + 1}: </span>
+            <span className="text-sm text-gray-600">{progress.completed + 1} of {progress.total} comparisons</span>
+          </div>
+          <div className="progress-track">
+            <div 
+              className="progress-fill"
+              style={{ width: `${(progress.completed / progress.total) * 100}%` }}
+            ></div>
+          </div>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2.5">
-          <div 
-            className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
-            style={{ width: `${(progress.completed / progress.total) * 100}%` }}
-          ></div>
+
+        <div className="comparison-container">
+          {/* Song 1 */}
+          <div className="song-card">
+            <div onClick={() => handleSwipe("left")} className="album-cover">
+              <img 
+                src={currentPair[0].albumCover} 
+                alt={currentPair[0].name}
+                style={{ maxWidth: '20rem', maxHeight: '20rem' }} 
+              />
+            </div>
+            {(currentPair[0].previewUrl || previews.song1) && (
+              <audio 
+                controls 
+                src={currentPair[0].previewUrl || previews.song1 || ''} 
+              />
+            )}
+            <h3>{currentPair[0].name}</h3>
+            <p>{currentPair[0].artist} - {currentPair[0].album}</p>
+          </div>
+
+          <div className="vs-divider">VS</div>
+
+          {/* Song 2 */}
+          <div className="song-card">
+            <h3>{currentPair[1].name}</h3>
+            <p>{currentPair[1].artist} - {currentPair[1].album}</p>
+            {(currentPair[1].previewUrl || previews.song2) && (
+              <audio 
+                controls 
+                src={currentPair[1].previewUrl || previews.song2 || ''} 
+              />
+            )}
+            <div onClick={() => handleSwipe("right")} className="album-cover">
+              <img 
+                src={currentPair[1].albumCover} 
+                alt={currentPair[1].name}
+                style={{ maxWidth: '20rem', maxHeight: '20rem' }} 
+              />
+            </div>
+            
+            
+          </div>
         </div>
-      </div>
-
-      <div onClick={() => handleSwipe("left")} className="cursor-pointer hover:opacity-75 transition-opacity">
-        <img 
-          src={currentPair[0].albumCover} 
-          alt={currentPair[0].name}
-          className="w-32 h-32 rounded-lg shadow-lg object-cover" 
-          style={{ maxWidth: '16rem', maxHeight: '16rem' }} 
-        />
-      </div>
-      {(currentPair[0].previewUrl || previews.song1) && (
-        <audio 
-          controls 
-          src={currentPair[0].previewUrl || previews.song1 || ''} 
-          className="w-32"
-        />
-      )}
-      <h2 className="text-xl font-bold">{currentPair[0].name}</h2>
-      <p className="text-gray-600">{currentPair[0].artist} - {currentPair[0].album}</p>
-
-      <div className="text-2xl font-bold text-gray-400 my-2">VS</div>
-
-      <h2 className="text-xl font-bold">{currentPair[1].name}</h2>
-      <p className="text-gray-600">{currentPair[1].artist} - {currentPair[1].album}</p>
-      {(currentPair[1].previewUrl || previews.song2) && (
-        <audio 
-          controls 
-          src={currentPair[1].previewUrl || previews.song2 || ''} 
-          className="w-32"
-        />
-      )}
-      <div onClick={() => handleSwipe("right")} className="cursor-pointer hover:opacity-75 transition-opacity">
-        <img 
-          src={currentPair[1].albumCover} 
-          alt={currentPair[1].name}
-          className="w-32 h-32 rounded-lg shadow-lg object-cover" 
-          style={{ maxWidth: '16rem', maxHeight: '16rem' }} 
-        />
       </div>
     </div>
   );

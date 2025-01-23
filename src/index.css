@@ -4,7 +4,7 @@
   font-weight: 400;
   color-scheme: light dark;
   background-color: #302a2a; /* Spotify's darkest background */
-  color: rgba(70, 69, 69, 0.87);
+  color: rgba(218, 218, 218, 0.87);
 }
 
 body {
@@ -15,15 +15,23 @@ body {
 }
 
 .auth-container {
-  background-color: #181818; /* Spotify's card color */
+  background-color: #181818;
   padding: 2rem;
   border-radius: 12px;
+  width: 100%;
+  max-width: 400px; /* Limit maximum width */
   box-shadow: 0 4px 60px rgba(0, 0, 0, 0.5);
   border: 1px solid #282828;
+  margin-left: 64px; /* Account for collapsed navbar */
+}
+
+/* Add this if you want the auth container to shift with navbar expansion */
+.nav-expanded .auth-container {
+  margin-left: 256px;
 }
 
 input {
-  width: 94%;
+  width: 80%;
   padding: 12px 16px;
   margin: 8px 0;
   background-color: #282828;
@@ -38,7 +46,7 @@ input:focus {
 }
 
 button {
-  width: 100%;
+  width: 88%;
   background-color: #1DB954; /* Spotify's green */
   color: white;
   padding: 14px 28px;
@@ -55,11 +63,40 @@ button:hover {
   transform: scale(1.02);
 }
 
-h1 {
-  color: rgb(0, 0, 0);
+h1, h2, h4, h5, h6 {
+  color: white;
   text-align: center;
   margin-bottom: 24px;
-  font-size: 2rem;
+}
+
+.text-gray-600 {
+  color: #b3b3b3; /* Spotify's lighter gray */
+}
+
+/* Compare page specific styles */
+.dashboard-container {
+  color: white; /* This ensures all text within dashboard is white by default */
+}
+
+.nav-link {
+  color: #b3b3b3; /* Spotify's gray */
+  text-decoration: none;
+  padding: 8px 16px;
+  transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+  color: white;
+}
+
+/* Progress text */
+.progress-text {
+  color: #b3b3b3;
+}
+
+/* VS text */
+.text-2xl {
+  color: #b3b3b3;
 }
 
 .switch-text {
@@ -136,17 +173,6 @@ h1 {
   gap: 16px;
 }
 
-.nav-link {
-  color: #b3b3b3;
-  text-decoration: none;
-  padding: 8px 16px;
-  transition: color 0.3s ease;
-}
-
-.nav-link:hover {
-  color: white;
-}
-
 /* Settings Button Styles */
 .settings-button {
   width: 100%;
@@ -197,7 +223,8 @@ h1 {
   margin-left: 64px; /* Matches collapsed navbar width */
   padding: 24px;
   min-height: 100vh;
-  transition: margin-left 0.3s ease; /* Smooth transition when navbar expands/collapses */
+  background-color: #121212; /* Add this */
+  transition: margin-left 0.3s ease;
 }
 
 .dashboard-container.nav-expanded {
@@ -232,12 +259,15 @@ h1 {
   aspect-ratio: 1;
   object-fit: cover;
   border-radius: 4px;
+  max-width: 200px; /* Add max-width */
+  margin: 0 auto; /* Center the image */
 }
 
 .playlist-name {
   color: white;
   font-weight: 600;
   font-size: 1rem;
+  margin: 8px 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -249,4 +279,247 @@ h1 {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Compare Page Styles */
+.compare-content {
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* Progress Bar Styles - make more specific */
+.compare-content .progress-bar {
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 40px;
+}
+
+.compare-content .progress-bar .flex {
+  display: flex;
+  flex-direction: row;  /* Override column direction */
+  justify-content: space-between;
+  align-items: center;
+  min-height: auto;  /* Override min-height */
+  background-color: transparent;  /* Override background */
+  margin-left: 0;  /* Override margin */
+  padding: 0;  /* Override padding */
+  margin-bottom: 8px;
+}
+
+.progress-track {
+  width: 100%;
+  height: 4px;
+  background: #282828;
+  border-radius: 2px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #1DB954;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.comparison-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+  position: relative;
+}
+
+.vs-divider {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24px;
+  font-weight: bold;
+  color: #43a126;
+  z-index: 1;
+}
+
+.song-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+}
+
+.album-cover {
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.album-cover:hover {
+  transform: scale(1.05);
+}
+
+.album-cover img {
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+audio {
+  width: 325px;
+}
+
+.song-card h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.song-card p {
+  margin: 0;
+  color: #b3b3b3;
+  font-size: 14px;
+}
+
+/* Group Completion styles */
+.flex {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #121212;
+  margin-left: 64px;
+  padding: 24px;
+}
+
+/* Add these new styles for the group completion content */
+.group-completion {
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #181818;
+  border-radius: 8px;
+  box-shadow: 0 4px 60px rgba(0, 0, 0, 0.5);
+}
+
+.group-completion h2,
+.group-completion h3 {
+  color: white;
+  margin-bottom: 16px;
+}
+
+.group-completion p {
+  color: #b3b3b3;
+  margin: 4px 0;
+}
+
+.group-completion button {
+  margin-top: 24px;
+  width: auto;
+  min-width: 200px;
+}
+
+/* Navbar Styles */
+.navbar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background-color: #000000;
+  color: white;
+  transition: width 0.3s ease;
+  z-index: 1000;
+}
+
+.navbar.expanded {
+  width: 256px;
+}
+
+.navbar.collapsed {
+  width: 64px;
+}
+
+.hamburger-menu {
+  cursor: pointer;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 24px;
+  margin-top: 10px;
+  margin-left: 4px;
+}
+
+.hamburger-line {
+  width: 24px;
+  height: 2px;
+  background-color: white;
+  transition: all 0.3s ease;
+}
+
+.navbar-content {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease;
+  padding: 0 24px;
+  white-space: nowrap;
+}
+
+.navbar.expanded .navbar-content {
+  opacity: 1;
+  visibility: visible;
+}
+
+.navbar-brand {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 32px;
+}
+
+.nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Settings Button Styles */
+.settings-button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #b3b3b3;
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  margin: 0;
+  text-align: left;
+  border-radius: 4px 4px 0 0;
+  transition: all 0.3s ease;
+}
+
+.settings-button:hover {
+  color: white;
+  background-color: transparent;
+  transform: none;
+}
+
+.settings-button.active {
+  background-color: #282828;
+  color: white;
+}
+
+.settings-dropdown {
+  width: 100%;
+  background-color: #282828;
+  color: #b3b3b3;
+  padding: 8px 16px;
+  border: none;
+  border-top: 1px solid #3E3E3E;
+  border-radius: 0 0 4px 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.settings-dropdown:hover {
+  background-color: #3E3E3E;
+  color: white;
+  transform: none;
 }
