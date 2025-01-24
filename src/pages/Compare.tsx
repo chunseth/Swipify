@@ -426,8 +426,6 @@ const Compare = () => {
                 style={{ maxWidth: '20rem', maxHeight: '20rem' }} 
               />
             </div>
-            
-            
           </div>
         </div>
       </div>
