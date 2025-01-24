@@ -3,7 +3,17 @@ export const searchItunes = async (query: string) => {
     const url = `https://itunes.apple.com/search?term=${encodedQuery}&media=music&entity=song&limit=1`;
   
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        mode: 'cors',  // Explicitly set CORS mode
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       
       return {
@@ -12,16 +22,18 @@ export const searchItunes = async (query: string) => {
           url,
           status: response.status,
           resultCount: data.results?.length,
-          firstResult: data.results?.[0]
+          firstResult: data.results?.[0],
+          headers: Object.fromEntries(response.headers)
         }
       };
     } catch (error: any) {
       throw {
-        message: error?.message || 'Unknown error',
+        message: `Load failed: ${error?.message || 'Unknown error'}`,
         debug: {
           url,
           error: error?.message,
-          stack: error?.stack
+          type: error?.type,
+          name: error?.name
         }
       };
     }
