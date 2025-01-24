@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../services/firebase";
 import { useNavigate } from "react-router-dom";
+import { ref, set } from "firebase/database";
+import { db } from "../services/firebase";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -9,14 +11,28 @@ const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [authStatus, setAuthStatus] = useState<string>("");
   const navigate = useNavigate();
+  const [showDebug, setShowDebug] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<{
+    error?: string;
+    errorCode?: string;
+    errorDetails?: any;
+    lastAttempt?: {
+      email: string;
+      isSignUp: boolean;
+      timestamp: string;
+    };
+  }>({});
+  const [_, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setAuthStatus("You're signed in! Use the menu button ☰ to navigate to Dashboard.");
-        if (!localStorage.getItem("spotifyAccessToken")) {
-          navigate("/spotify-auth");
-        }
+        // Only redirect if explicitly going to Spotify auth
+        // Remove or comment out this automatic redirect
+        // if (!localStorage.getItem("spotifyAccessToken")) {
+        //   navigate("/spotify-auth");
+        // }
       } else {
         setAuthStatus("Please sign in to continue");
       }
@@ -28,12 +44,75 @@ const Auth = () => {
     e.preventDefault();
     try {
       if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
+        setDebugInfo(prev => ({
+          ...prev,
+          lastAttempt: {
+            email,
+            isSignUp: true,
+            timestamp: new Date().toISOString(),
+            authMethod: 'createUserWithEmailAndPassword'
+          }
+        }));
+        
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        
+        const userId = userCredential.user.uid;
+        const userRef = ref(db, `users/${userId}`);
+        await set(userRef, {
+          email: email,
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString()
+        });
+        
+        const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
+        const redirectUri = import.meta.env.PROD 
+          ? "https://swipifys.netlify.app/callback"
+          : "http://localhost:3000/callback";
+        const scopes = "user-read-private user-read-email playlist-read-private";
+        const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=token`;
+        window.location.href = authUrl;
+        
       } else {
+        setDebugInfo(prev => ({
+          ...prev,
+          lastAttempt: {
+            email,
+            isSignUp: false,
+            timestamp: new Date().toISOString(),
+            authMethod: 'signInWithEmailAndPassword'
+          }
+        }));
         await signInWithEmailAndPassword(auth, email, password);
+        // Same redirect for signin
+        const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
+        const redirectUri = import.meta.env.PROD 
+          ? "https://swipifys.netlify.app/callback"
+          : "http://localhost:3000/callback";
+        const scopes = "user-read-private user-read-email playlist-read-private";
+        const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=token`;
+        window.location.href = authUrl;
       }
-    } catch (error) {
-      console.error("Error during auth:", error);
+    } catch (error: any) {
+      console.error('Full Firebase error:', error);
+      
+      setDebugInfo({
+        error: error.message,
+        errorCode: error.code,
+        errorDetails: {
+          name: error.name,
+          stack: error.stack,
+          message: error.message,
+          code: error.code,
+          customData: error.customData
+        },
+        lastAttempt: {
+          email,
+          isSignUp,
+          timestamp: new Date().toISOString()
+        }
+      });
+      
+      setError(error.message || 'An error occurred during authentication');
     }
   };
 
@@ -79,6 +158,45 @@ const Auth = () => {
           {isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up"}
         </button>
       </div>
+      
+      {/* Debug Button and Panel */}
+      <button 
+        onClick={() => setShowDebug(!showDebug)} 
+        style={{ 
+          position: 'fixed', 
+          bottom: '10px', 
+          left: '64px',
+          background: '#1DB954',
+          padding: '8px',
+          borderRadius: '4px',
+          color: 'white',
+          zIndex: 1000
+        }}
+      >
+        Debug
+      </button>
+      
+      {showDebug && (
+        <div style={{
+          position: 'fixed',
+          bottom: '50px',
+          left: '64px',
+          background: '#282828',
+          padding: '10px',
+          borderRadius: '4px',
+          maxWidth: '300px',
+          zIndex: 1000,
+          fontSize: '12px',
+          color: 'white',
+          marginBottom: '10px'
+        }}>
+          <h4>Auth Debug Info:</h4>
+          <p>Last Attempt: {debugInfo.lastAttempt ? JSON.stringify(debugInfo.lastAttempt, null, 2) : 'None'}</p>
+          <p>Error: {debugInfo.error || 'None'}</p>
+          <p>Error Code: {debugInfo.errorCode || 'None'}</p>
+          <p>Device: {navigator.userAgent}</p>
+        </div>
+      )}
     </div>
   );
 };
