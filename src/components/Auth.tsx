@@ -19,7 +19,7 @@ const Auth = () => {
     lastAttempt?: {
       email: string;
       isSignUp: boolean;
-      timestamp: string;
+      timestamp: string;  
     };
   }>({});
   const [_, setError] = useState<string | null>(null);
