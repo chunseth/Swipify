@@ -43,6 +43,13 @@ const Compare = () => {
   const [sounds, setSounds] = useState<{ [key: string]: Howl }>({});
   const [isPlaying, setIsPlaying] = useState<{ song1: boolean; song2: boolean }>({ song1: false, song2: false });
   const [showDebug, setShowDebug] = useState(false);
+  const [itunesDebug, setItunesDebug] = useState<{
+    query?: string,
+    error?: string,
+    response?: any,
+    url?: string,
+    status?: number
+  }>({});
 
   const fetchAndSaveSongs = async (playlistId: string) => {
     const userId = auth.currentUser?.uid;
@@ -238,15 +245,26 @@ const Compare = () => {
   const fetchItunesPreview = async (song: Song, side: 'song1' | 'song2') => {
     try {
       const query = `${song.name} ${song.artist}`;
+      setItunesDebug(prev => ({ ...prev, query }));
       const itunesResult = await searchItunes(query);
+      setItunesDebug(prev => ({ 
+        ...prev, 
+        response: itunesResult,
+        url: itunesResult.debug?.url,
+        status: itunesResult.debug?.status
+      }));
       if (itunesResult?.previewUrl) {
         setPreviews(prev => ({
           ...prev,
           [side]: itunesResult.previewUrl
         }));
       }
-    } catch (error) {
-      console.error('Failed to fetch iTunes preview:', error);
+    } catch (error: any) {
+      setItunesDebug(prev => ({ 
+        ...prev, 
+        error: error?.message || 'Unknown error',
+        url: error?.debug?.url
+      }));
     }
   };
 
@@ -482,6 +500,12 @@ const Compare = () => {
             <h4>Song 2:</h4>
             <p>Spotify URL: {currentPair[1]?.previewUrl || 'none'}</p>
             <p>iTunes URL: {previews.song2 || 'none'}</p>
+            <h4>iTunes Debug:</h4>
+            <p>Query: {itunesDebug.query || 'none'}</p>
+            <p>URL: {itunesDebug.url || 'none'}</p>
+            <p>Status: {itunesDebug.status || 'none'}</p>
+            <p>Error: {itunesDebug.error || 'none'}</p>
+            <p>Response: {itunesDebug.response ? JSON.stringify(itunesDebug.response.debug, null, 2) : 'none'}</p>
             <p>Device: {navigator.userAgent}</p>
           </div>
         )}
