@@ -9,7 +9,6 @@ import { generateMatchups } from "../utils/generateMatchups";
 import { calculateElo } from "../utils/eloCalculator";
 import { searchItunes } from "../utils/itunesSearch";
 import { useNavigate } from "react-router-dom";
-import { Howl } from 'howler';
 
 const spotifyApi = new SpotifyWebApi();
 
@@ -40,8 +39,6 @@ const Compare = () => {
   });
   const [progress, setProgress] = useState<{ completed: number; total: number }>({ completed: 0, total: 0 });
   const [showGroupCompletion, setShowGroupCompletion] = useState(false);
-  const [sounds, setSounds] = useState<{ [key: string]: Howl }>({});
-  const [isPlaying, setIsPlaying] = useState<{ song1: boolean; song2: boolean }>({ song1: false, song2: false });
   const [showDebug, setShowDebug] = useState(false);
   const [itunesDebug, setItunesDebug] = useState<{
     query?: string,
@@ -96,35 +93,6 @@ const Compare = () => {
     } catch (error) {
         console.error("Error:", error);
         return [];
-    }
-  };
-
-  const handleAudioPlay = (src: string, songNumber: 'song1' | 'song2') => {
-    // Stop other sound if playing
-    const otherSong = songNumber === 'song1' ? 'song2' : 'song1';
-    if (sounds[otherSong]) {
-      sounds[otherSong].stop();
-      setIsPlaying(prev => ({ ...prev, [otherSong]: false }));
-    }
-
-    // Create or play sound
-    if (!sounds[songNumber]) {
-      const sound = new Howl({
-        src: [src],
-        html5: true,
-        onend: () => setIsPlaying(prev => ({ ...prev, [songNumber]: false })),
-      });
-      setSounds(prev => ({ ...prev, [songNumber]: sound }));
-      sound.play();
-      setIsPlaying(prev => ({ ...prev, [songNumber]: true }));
-    } else {
-      if (sounds[songNumber].playing()) {
-        sounds[songNumber].pause();
-        setIsPlaying(prev => ({ ...prev, [songNumber]: false }));
-      } else {
-        sounds[songNumber].play();
-        setIsPlaying(prev => ({ ...prev, [songNumber]: true }));
-      }
     }
   };
 
@@ -312,12 +280,6 @@ const Compare = () => {
     initializePlaylist();
   }, [playlistId]);
 
-  useEffect(() => {
-    return () => {
-      Object.values(sounds).forEach(sound => sound.unload());
-    };
-  }, [sounds]);
-
   if (loading) {
     return <div>Loading playlist data...</div>;
   }
@@ -408,22 +370,15 @@ const Compare = () => {
             
             {(currentPair[0].previewUrl || previews.song1) && (
               <div className="audio-container">
-                <button 
-                  onClick={() => handleAudioPlay(currentPair[0]?.previewUrl || previews.song1 || '', 'song1')}
-                  className="play-button"
-                >
-                  {isPlaying.song1 ? '⏸' : '▶️'}
-                </button>
                 <audio 
-                  id="audio-song1"
+                  controls
                   playsInline
                   preload="metadata"
-                  data-song="song1"
                   src={currentPair[0].previewUrl || previews.song1 || ''} 
-                  style={{ display: 'none' }}
                 />
               </div>
             )}
+            
             <h3>{currentPair[0].name}</h3>
             <p>{currentPair[0].artist} - {currentPair[0].album}</p>
           </div>
@@ -434,21 +389,14 @@ const Compare = () => {
           <div className="song-card">
             <h3>{currentPair[1].name}</h3>
             <p>{currentPair[1].artist} - {currentPair[1].album}</p>
+            
             {(currentPair[1].previewUrl || previews.song2) && (
               <div className="audio-container">
-                <button 
-                  onClick={() => handleAudioPlay(currentPair[1]?.previewUrl || previews.song2 || '', 'song2')}
-                  className="play-button"
-                >
-                  {isPlaying.song2 ? '⏸' : '▶️'}
-                </button>
                 <audio 
-                  id="audio-song2"
+                  controls
                   playsInline
                   preload="metadata"
-                  data-song="song2"
                   src={currentPair[1].previewUrl || previews.song2 || ''} 
-                  style={{ display: 'none' }}
                 />
               </div>
             )}
