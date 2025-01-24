@@ -42,6 +42,7 @@ const Compare = () => {
   const [showGroupCompletion, setShowGroupCompletion] = useState(false);
   const [sounds, setSounds] = useState<{ [key: string]: Howl }>({});
   const [isPlaying, setIsPlaying] = useState<{ song1: boolean; song2: boolean }>({ song1: false, song2: false });
+  const [showDebug, setShowDebug] = useState(false);
 
   const fetchAndSaveSongs = async (playlistId: string) => {
     const userId = auth.currentUser?.uid;
@@ -443,6 +444,47 @@ const Compare = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="debug-panel">
+        <button 
+          onClick={() => setShowDebug(!showDebug)} 
+          style={{ 
+            position: 'fixed', 
+            bottom: '10px', 
+            left: '64px',  // Match navbar width
+            background: '#1DB954',
+            padding: '8px',
+            borderRadius: '4px',
+            zIndex: 1000
+          }}
+        >
+          Debug
+        </button>
+        
+        {showDebug && (
+          <div style={{
+            position: 'fixed',
+            bottom: '50px',
+            left: '64px',  // Match navbar width
+            background: '#282828',
+            padding: '10px',
+            borderRadius: '4px',
+            maxWidth: '300px',
+            zIndex: 1000,
+            fontSize: '12px',
+            color: 'white',
+            marginBottom: '10px'
+          }}>
+            <h4>Song 1:</h4>
+            <p>Spotify URL: {currentPair[0]?.previewUrl || 'none'}</p>
+            <p>iTunes URL: {previews.song1 || 'none'}</p>
+            <h4>Song 2:</h4>
+            <p>Spotify URL: {currentPair[1]?.previewUrl || 'none'}</p>
+            <p>iTunes URL: {previews.song2 || 'none'}</p>
+            <p>Device: {navigator.userAgent}</p>
+          </div>
+        )}
       </div>
     </div>
   );
