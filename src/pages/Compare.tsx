@@ -484,7 +484,7 @@ const Compare = () => {
           <div style={{
             position: 'fixed',
             bottom: '50px',
-            left: '64px',  // Match navbar width
+            left: '64px',
             background: '#282828',
             padding: '10px',
             borderRadius: '4px',
@@ -494,18 +494,12 @@ const Compare = () => {
             color: 'white',
             marginBottom: '10px'
           }}>
-            <h4>Song 1:</h4>
-            <p>Spotify URL: {currentPair[0]?.previewUrl || 'none'}</p>
-            <p>iTunes URL: {previews.song1 || 'none'}</p>
-            <h4>Song 2:</h4>
-            <p>Spotify URL: {currentPair[1]?.previewUrl || 'none'}</p>
-            <p>iTunes URL: {previews.song2 || 'none'}</p>
             <h4>iTunes Debug:</h4>
             <p>Query: {itunesDebug.query || 'none'}</p>
             <p>URL: {itunesDebug.url || 'none'}</p>
             <p>Status: {itunesDebug.status || 'none'}</p>
             <p>Error: {itunesDebug.error || 'none'}</p>
-            <p>Response: {itunesDebug.response ? JSON.stringify(itunesDebug.response.debug, null, 2) : 'none'}</p>
+            <p>Response: {itunesDebug.response?.debug ? JSON.stringify(itunesDebug.response.debug, null, 2) : 'none'}</p>
             <p>Device: {navigator.userAgent}</p>
           </div>
         )}

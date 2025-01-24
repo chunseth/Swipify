@@ -5,12 +5,24 @@ export const searchItunes = async (query: string) => {
     try {
       const response = await fetch(url);
       const data = await response.json();
-      if (data.results && data.results.length > 0) {
-        return data.results[0]; // Return the closest matching result
-      }
-      return null; // No results found
-    } catch (error) {
-      console.error("Error searching iTunes:", error);
-      return null;
+      
+      return {
+        previewUrl: data.results?.[0]?.previewUrl,
+        debug: {
+          url,
+          status: response.status,
+          resultCount: data.results?.length,
+          firstResult: data.results?.[0]
+        }
+      };
+    } catch (error: any) {
+      throw {
+        message: error?.message || 'Unknown error',
+        debug: {
+          url,
+          error: error?.message,
+          stack: error?.stack
+        }
+      };
     }
-  };
+};
