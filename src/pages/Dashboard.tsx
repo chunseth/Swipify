@@ -3,14 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 const Dashboard = () => {
-  const playlists = useSpotify();
+  const { playlists, error } = useSpotify();
   const navigate = useNavigate();
   const [showDebug, setShowDebug] = useState(false);
   const [debugInfo, setDebugInfo] = useState<{
     accessToken?: string | null;
     playlistCount?: number;
-    error?: string;
+    error?: any;
     lastUpdate?: string;
+    spotifyError?: any;
   }>({
     accessToken: localStorage.getItem("spotifyAccessToken"),
     playlistCount: 0,
@@ -32,7 +33,10 @@ const Dashboard = () => {
       <div className="dashboard-container">
         <div className="playlists-grid">
           {playlists.length === 0 ? (
-            <p>No playlists found. Please check your Spotify connection.</p>
+            <div>
+              <p>No playlists found. Please check your Spotify connection.</p>
+              {error && <p style={{ color: 'red' }}>Error: {error.message || JSON.stringify(error)}</p>}
+            </div>
           ) : (
             <div style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}>
               {playlists.map((playlist) => (
@@ -58,7 +62,9 @@ const Dashboard = () => {
           setDebugInfo({
             accessToken: localStorage.getItem("spotifyAccessToken"),
             playlistCount: playlists.length,
-            lastUpdate: new Date().toISOString()
+            error: error,
+            lastUpdate: new Date().toISOString(),
+            spotifyError: error
           });
           setShowDebug(!showDebug);
         }} 
@@ -95,6 +101,8 @@ const Dashboard = () => {
           <p>Token Preview: {debugInfo.accessToken?.substring(0, 10)}...</p>
           <p>Playlist Count: {debugInfo.playlistCount}</p>
           <p>Last Update: {debugInfo.lastUpdate}</p>
+          <p>Error: {debugInfo.error ? JSON.stringify(debugInfo.error, null, 2) : 'None'}</p>
+          <p>Spotify Error: {debugInfo.spotifyError ? JSON.stringify(debugInfo.spotifyError, null, 2) : 'None'}</p>
           <p>Device: {navigator.userAgent}</p>
         </div>
       )}
