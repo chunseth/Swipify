@@ -27,7 +27,7 @@ const Rankings = () => {
   }, [playlistId]);
 
   return (
-    <div>
+    <div style={{ marginLeft: '64px', padding: '20px' }}>
       <h1>Rankings</h1>
       <h2>{playlistName}</h2>
       <table>
@@ -46,7 +46,18 @@ const Rankings = () => {
               <td>{index + 1}</td>
               <td>{song.name}</td>
               <td>{song.artist}</td>
-              <td>{song.album}</td>
+              <td>
+                <img 
+                  src={song.albumCover} 
+                  alt={song.album}
+                  style={{ 
+                    width: '40px', 
+                    height: '40px', 
+                    borderRadius: '4px',
+                    objectFit: 'cover'
+                  }} 
+                />
+              </td>
               <td>{song.elo}</td>
             </tr>
           ))}

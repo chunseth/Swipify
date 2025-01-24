@@ -39,14 +39,6 @@ const Compare = () => {
   });
   const [progress, setProgress] = useState<{ completed: number; total: number }>({ completed: 0, total: 0 });
   const [showGroupCompletion, setShowGroupCompletion] = useState(false);
-  const [showDebug, setShowDebug] = useState(false);
-  const [itunesDebug, setItunesDebug] = useState<{
-    query?: string,
-    error?: string,
-    response?: any,
-    url?: string,
-    status?: number
-  }>({});
 
   const fetchAndSaveSongs = async (playlistId: string) => {
     const userId = auth.currentUser?.uid;
@@ -213,14 +205,7 @@ const Compare = () => {
   const fetchItunesPreview = async (song: Song, side: 'song1' | 'song2') => {
     try {
       const query = `${song.name} ${song.artist}`;
-      setItunesDebug(prev => ({ ...prev, query }));
       const itunesResult = await searchItunes(query);
-      setItunesDebug(prev => ({ 
-        ...prev, 
-        response: itunesResult,
-        url: itunesResult.debug?.url,
-        status: itunesResult.debug?.status
-      }));
       if (itunesResult?.previewUrl) {
         setPreviews(prev => ({
           ...prev,
@@ -228,11 +213,7 @@ const Compare = () => {
         }));
       }
     } catch (error: any) {
-      setItunesDebug(prev => ({ 
-        ...prev, 
-        error: error?.message || 'Unknown error',
-        url: error?.debug?.url
-      }));
+      console.error('Failed to fetch iTunes preview:', error);
     }
   };
 
@@ -256,36 +237,52 @@ const Compare = () => {
     }
   }, [groupMatchups, currentGroupIndex]);
 
-  useEffect(() => {
-    const initializePlaylist = async () => {
-        if (!playlistId) return;
-        const songs = await fetchAndSaveSongs(playlistId);
-        const groups = [];
-        for (let i = 0; i < songs.length; i += 6) {
-            groups.push(songs.slice(i, i + 6));
-        }
-        const matchups = await generateMatchups(groups, auth.currentUser?.uid || '', playlistId);
-        setSongs(songs);
-        setGroups(groups);
-        setCurrentGroup(groups[0]);
-        setGroupMatchups(matchups);
-        
-        // Get first pair
-        const firstPair = await getNextPair(matchups, 0, groups[0]);
-        if (firstPair[0]) setCurrentPair(firstPair as [Song, Song]);
-        
-        setLoading(false);
-    };
+  // Add this shuffle function
+  const shuffleArray = <T,>(array: T[]): T[] => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  };
 
+  // Update the initializePlaylist function
+  const initializePlaylist = async () => {
+    if (!playlistId) return;
+    const songs = await fetchAndSaveSongs(playlistId);
+    
+    // Shuffle the songs before creating groups
+    const shuffledSongs = shuffleArray(songs);
+    
+    const groups = [];
+    for (let i = 0; i < shuffledSongs.length; i += 6) {
+      groups.push(shuffledSongs.slice(i, i + 6));
+    }
+    
+    const matchups = await generateMatchups(groups, auth.currentUser?.uid || '', playlistId);
+    setSongs(shuffledSongs);
+    setGroups(groups);
+    setCurrentGroup(groups[0]);
+    setGroupMatchups(matchups);
+    
+    // Get first pair
+    const firstPair = await getNextPair(matchups, 0, groups[0]);
+    if (firstPair[0]) setCurrentPair(firstPair as [Song, Song]);
+    
+    setLoading(false);
+  };
+
+  useEffect(() => {
     initializePlaylist();
   }, [playlistId]);
 
   if (loading) {
-    return <div>Loading playlist data...</div>;
+    return <div style={{ marginLeft: '64px', padding: '20px' }}>Loading playlist data...</div>;
   }
 
   if (!songs || songs.length < 2) {
-    return <div>Not enough songs in this playlist to compare.</div>;
+    return <div style={{ marginLeft: '64px', padding: '20px' }}>Not enough songs in this playlist to compare.</div>;
   }
 
   if (!currentPair[0] || !currentPair[1]) {
@@ -410,47 +407,6 @@ const Compare = () => {
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="debug-panel">
-        <button 
-          onClick={() => setShowDebug(!showDebug)} 
-          style={{ 
-            position: 'fixed', 
-            bottom: '10px', 
-            left: '64px',  // Match navbar width
-            background: '#1DB954',
-            padding: '8px',
-            borderRadius: '4px',
-            zIndex: 1000
-          }}
-        >
-          Debug
-        </button>
-        
-        {showDebug && (
-          <div style={{
-            position: 'fixed',
-            bottom: '50px',
-            left: '64px',
-            background: '#282828',
-            padding: '10px',
-            borderRadius: '4px',
-            maxWidth: '300px',
-            zIndex: 1000,
-            fontSize: '12px',
-            color: 'white',
-            marginBottom: '10px'
-          }}>
-            <h4>iTunes Debug:</h4>
-            <p>Query: {itunesDebug.query || 'none'}</p>
-            <p>URL: {itunesDebug.url || 'none'}</p>
-            <p>Status: {itunesDebug.status || 'none'}</p>
-            <p>Error: {itunesDebug.error || 'none'}</p>
-            <p>Response: {itunesDebug.response?.debug ? JSON.stringify(itunesDebug.response.debug, null, 2) : 'none'}</p>
-            <p>Device: {navigator.userAgent}</p>
-          </div>
-        )}
       </div>
     </div>
   );

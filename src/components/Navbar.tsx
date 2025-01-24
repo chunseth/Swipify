@@ -62,7 +62,7 @@ const Navbar = () => {
                 onClick={handleSignOut}
                 className="settings-dropdown"
               >
-                Sign Out
+                Refresh Spotify Dashboard
               </button>
             )}
           </div>
