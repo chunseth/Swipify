@@ -582,36 +582,3 @@ audio::-webkit-media-controls-toggle-closed-captions-button {
 .play-button:active {
   transform: scale(0.95);
 }
-
-/* Mobile-specific styles */
-@media (max-width: 768px) {
-  .play-button {
-    background: #1DB954;
-    border: none;
-    border-radius: 50%;
-    width: 60px;  /* Bigger for mobile */
-    height: 60px; /* Bigger for mobile */
-    font-size: 24px;
-    display: flex !important; /* Force display */
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    margin: 16px auto;
-    z-index: 10;
-    position: relative;
-  }
-
-  .play-button:hover {
-    transform: scale(1.1);
-  }
-  
-  .play-button:active {
-    transform: scale(0.95);
-  }
-
-  .audio-container {
-    margin: 16px 0;
-    display: block !important; /* Force display */
-    text-align: center;
-  }
-}

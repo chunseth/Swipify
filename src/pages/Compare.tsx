@@ -9,6 +9,7 @@ import { generateMatchups } from "../utils/generateMatchups";
 import { calculateElo } from "../utils/eloCalculator";
 import { searchItunes } from "../utils/itunesSearch";
 import { useNavigate } from "react-router-dom";
+import { Howl } from 'howler';
 
 const spotifyApi = new SpotifyWebApi();
 
@@ -39,6 +40,7 @@ const Compare = () => {
   });
   const [progress, setProgress] = useState<{ completed: number; total: number }>({ completed: 0, total: 0 });
   const [showGroupCompletion, setShowGroupCompletion] = useState(false);
+  const [sounds, setSounds] = useState<{ [key: string]: Howl }>({});
   const [isPlaying, setIsPlaying] = useState<{ song1: boolean; song2: boolean }>({ song1: false, song2: false });
 
   const fetchAndSaveSongs = async (playlistId: string) => {
@@ -89,27 +91,32 @@ const Compare = () => {
     }
   };
 
-  const handleAudioPlay = async (_src: string, songNumber: 'song1' | 'song2') => {
-    const audio = document.getElementById(`audio-${songNumber}`) as HTMLAudioElement;
-    
-    try {
-      if (isPlaying[songNumber]) {
-        audio.pause();
+  const handleAudioPlay = (src: string, songNumber: 'song1' | 'song2') => {
+    // Stop other sound if playing
+    const otherSong = songNumber === 'song1' ? 'song2' : 'song1';
+    if (sounds[otherSong]) {
+      sounds[otherSong].stop();
+      setIsPlaying(prev => ({ ...prev, [otherSong]: false }));
+    }
+
+    // Create or play sound
+    if (!sounds[songNumber]) {
+      const sound = new Howl({
+        src: [src],
+        html5: true,
+        onend: () => setIsPlaying(prev => ({ ...prev, [songNumber]: false })),
+      });
+      setSounds(prev => ({ ...prev, [songNumber]: sound }));
+      sound.play();
+      setIsPlaying(prev => ({ ...prev, [songNumber]: true }));
+    } else {
+      if (sounds[songNumber].playing()) {
+        sounds[songNumber].pause();
         setIsPlaying(prev => ({ ...prev, [songNumber]: false }));
       } else {
-        // Pause other audio if playing
-        const otherSong = songNumber === 'song1' ? 'song2' : 'song1';
-        const otherAudio = document.getElementById(`audio-${otherSong}`) as HTMLAudioElement;
-        if (otherAudio) {
-          otherAudio.pause();
-          setIsPlaying(prev => ({ ...prev, [otherSong]: false }));
-        }
-        
-        await audio.play();
+        sounds[songNumber].play();
         setIsPlaying(prev => ({ ...prev, [songNumber]: true }));
       }
-    } catch (error) {
-      console.log('Playback failed:', error);
     }
   };
 
@@ -286,6 +293,12 @@ const Compare = () => {
     initializePlaylist();
   }, [playlistId]);
 
+  useEffect(() => {
+    return () => {
+      Object.values(sounds).forEach(sound => sound.unload());
+    };
+  }, [sounds]);
+
   if (loading) {
     return <div>Loading playlist data...</div>;
   }
@@ -373,6 +386,7 @@ const Compare = () => {
                 style={{ maxWidth: '20rem', maxHeight: '20rem' }} 
               />
             </div>
+            
             {(currentPair[0].previewUrl || previews.song1) && (
               <div className="audio-container">
                 <button 
@@ -419,6 +433,7 @@ const Compare = () => {
                 />
               </div>
             )}
+            
             <div onClick={() => handleSwipe("right")} className="album-cover">
               <img 
                 src={currentPair[1].albumCover} 
