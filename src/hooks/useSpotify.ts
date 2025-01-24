@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import SpotifyWebApi from "spotify-web-api-js";
-import { refreshAccessToken } from "../components/refreshToken";
 
 const spotifyApi = new SpotifyWebApi();
 
@@ -10,43 +9,45 @@ const useSpotify = () => {
 
   const fetchPlaylists = async () => {
     const accessToken = localStorage.getItem("spotifyAccessToken");
-    console.log("Access Token in useSpotify:", accessToken?.substring(0, 10) + "..."); 
-
+    
     if (!accessToken) {
-      setError("No Spotify access token found");
-      console.error("No Spotify access token found.");
+      setError("No access token found");
       return;
     }
 
     spotifyApi.setAccessToken(accessToken);
     try {
-      console.log("Fetching playlists...");
-      const response = await spotifyApi.getUserPlaylists();
-      console.log("Playlists response:", response);
-      setPlaylists(response.items);
+      // Get user's profile first to get their ID
+      const me = await spotifyApi.getMe();
+      console.log("User ID:", me.id);
+
+      // Get both owned and followed playlists
+      const [ownedPlaylists, followedPlaylists] = await Promise.all([
+        spotifyApi.getUserPlaylists(me.id, { limit: 50 }),  // User's own playlists
+        spotifyApi.getMySavedTracks({ limit: 50 })          // Liked/saved tracks
+      ]);
+
+      console.log("Owned playlists:", ownedPlaylists.items.length);
+      console.log("Followed playlists:", followedPlaylists.items.length);
+
+      // Combine all playlists
+      const allPlaylists = [
+        ...ownedPlaylists.items,
+        // Create a "Liked Songs" playlist if they have any saved tracks
+        followedPlaylists.items.length > 0 ? {
+          id: 'liked_songs',
+          name: 'Liked Songs',
+          images: [{ url: 'https://misc.scdn.co/liked-songs/liked-songs-640.png' }],
+          tracks: followedPlaylists.items
+        } : null
+      ].filter(Boolean);
+
+      console.log("Total playlists:", allPlaylists.length);
+      setPlaylists(allPlaylists);
+      
     } catch (error: any) {
       console.error("Error fetching playlists:", error);
       setError(error);
-      
-      if (error?.status === 401) {
-        console.log("Token expired, attempting refresh...");
-        try {
-          const newAccessToken = await refreshAccessToken();
-          if (newAccessToken) {
-            console.log("New token obtained:", newAccessToken.substring(0, 10) + "...");
-            localStorage.setItem("spotifyAccessToken", newAccessToken);
-            spotifyApi.setAccessToken(newAccessToken);
-            const response = await spotifyApi.getUserPlaylists();
-            console.log("Playlists fetched with new token:", response);
-            setPlaylists(response.items);
-          } else {
-            setError("Failed to refresh token");
-          }
-        } catch (refreshError) {
-          console.error("Error during token refresh:", refreshError);
-          setError(refreshError);
-        }
-      }
     }
   };
 
@@ -54,7 +55,7 @@ const useSpotify = () => {
     fetchPlaylists();
   }, []);
 
-  return { playlists, error };  // Return both playlists and error
+  return { playlists, error, refetch: fetchPlaylists };
 };
 
 export default useSpotify;
