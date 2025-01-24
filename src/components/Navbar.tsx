@@ -13,6 +13,25 @@ const Navbar = () => {
     navigate('/auth');
   };
 
+  const handleSpotifyAuth = () => {
+    const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
+    const redirectUri = import.meta.env.PROD 
+      ? "https://swipifys.netlify.app/callback"
+      : "http://localhost:3000/callback";
+    const scopes = "user-read-private user-read-email playlist-read-private";
+    const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=token`;
+    window.location.href = authUrl;
+  };
+
+  const handleSpotifySignOut = () => {
+    localStorage.removeItem('spotifyAccessToken');
+    localStorage.removeItem('spotifyRefreshToken');
+    // Optionally refresh the page or navigate
+    window.location.reload();
+  };
+
+  const isSpotifyConnected = !!localStorage.getItem('spotifyAccessToken');
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (navbarRef.current && !navbarRef.current.contains(event.target as Node)) {
@@ -58,12 +77,20 @@ const Navbar = () => {
             </button>
 
             {showSettings && (
-              <button
-                onClick={handleSignOut}
-                className="settings-dropdown"
-              >
-                Refresh Spotify Dashboard
-              </button>
+              <div className="settings-dropdown">
+                <button onClick={handleSignOut}>
+                  Sign Out
+                </button>
+                {isSpotifyConnected ? (
+                  <button onClick={handleSpotifySignOut}>
+                    Disconnect Spotify
+                  </button>
+                ) : (
+                  <button onClick={handleSpotifyAuth}>
+                    Connect Spotify
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>
