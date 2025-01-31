@@ -16,7 +16,13 @@ const SpotifyAuth = () => {
     const redirectUri = import.meta.env.PROD 
       ? "https://swipifys.netlify.app/callback"
       : "http://localhost:3000/callback";
-    const scopes = "user-read-private user-read-email playlist-read-private";
+    const scopes = [
+      "user-read-private",
+      "user-read-email",
+      "playlist-read-private",
+      "playlist-read-collaborative",
+      "user-library-read"
+    ].join(' ');
 
     const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=token`;
 

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
+import { signOut } from 'firebase/auth';
+import { auth } from '../services/firebase';
 
 const Navbar = () => {
   const [showSettings, setShowSettings] = useState(false);
@@ -8,29 +10,21 @@ const Navbar = () => {
   const navigate = useNavigate();
   const navbarRef = useRef<HTMLDivElement>(null);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      localStorage.removeItem('spotifyAccessToken');
+      localStorage.removeItem('spotifyRefreshToken');
+      navigate('/auth');
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
+  const handleSpotifyRefresh = () => {
     localStorage.removeItem('spotifyAccessToken');
-    navigate('/auth');
+    navigate('/spotify-auth');
   };
-
-  const handleSpotifyAuth = () => {
-    const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
-    const redirectUri = import.meta.env.PROD 
-      ? "https://swipifys.netlify.app/callback"
-      : "http://localhost:3000/callback";
-    const scopes = "user-read-private user-read-email playlist-read-private";
-    const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=token`;
-    window.location.href = authUrl;
-  };
-
-  const handleSpotifySignOut = () => {
-    localStorage.removeItem('spotifyAccessToken');
-    localStorage.removeItem('spotifyRefreshToken');
-    // Optionally refresh the page or navigate
-    window.location.reload();
-  };
-
-  const isSpotifyConnected = !!localStorage.getItem('spotifyAccessToken');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -77,19 +71,43 @@ const Navbar = () => {
             </button>
 
             {showSettings && (
-              <div className="settings-dropdown">
-                <button onClick={handleSignOut}>
-                  Sign Out
-                </button>
-                {isSpotifyConnected ? (
-                  <button onClick={handleSpotifySignOut}>
-                    Disconnect Spotify
+              <div className="settings-dropdown" style={{ width: '84.5%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div>
+                  <button 
+                    onClick={handleSignOut}
+                    style={{
+                      padding: '8px 16px',
+                      width: '100%',
+                      backgroundColor: '#282828',
+                      border: 'none',
+                      borderRadius: '4px',
+                      color: 'white',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s',
+                      textAlign: 'left'
+                    }}
+                  >
+                    Sign Out
                   </button>
-                ) : (
-                  <button onClick={handleSpotifyAuth}>
-                    Connect Spotify
+                </div>
+                <div>
+                  <button 
+                    onClick={handleSpotifyRefresh}
+                    style={{
+                      padding: '8px 16px',
+                      width: '100%',
+                      backgroundColor: '#282828',
+                      border: 'none',
+                      borderRadius: '4px',
+                      color: 'white',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s',
+                      textAlign: 'left'
+                    }}
+                  >
+                    Refresh Spotify
                   </button>
-                )}
+                </div>
               </div>
             )}
           </div>

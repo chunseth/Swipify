@@ -17,35 +17,24 @@ const useSpotify = () => {
 
     spotifyApi.setAccessToken(accessToken);
     try {
-      // Get user's profile first to get their ID
-      const me = await spotifyApi.getMe();
-      console.log("User ID:", me.id);
-
-      // Get both owned and followed playlists
-      const [ownedPlaylists, followedPlaylists] = await Promise.all([
-        spotifyApi.getUserPlaylists(me.id, { limit: 50 }),  // User's own playlists
-        spotifyApi.getMySavedTracks({ limit: 50 })          // Liked/saved tracks
+      // Fetch both playlists and liked songs
+      const [playlistResponse, likedSongsResponse] = await Promise.all([
+        spotifyApi.getUserPlaylists(),
+        spotifyApi.getMySavedTracks()
       ]);
 
-      console.log("Owned playlists:", ownedPlaylists.items.length);
-      console.log("Followed playlists:", followedPlaylists.items.length);
+      // Create a "Liked Songs" playlist object
+      const likedSongsPlaylist = {
+        id: 'liked_songs',
+        name: 'Liked Songs',
+        images: [{ url: 'https://misc.scdn.co/liked-songs/liked-songs-640.png' }],
+        tracks: { total: likedSongsResponse.total }
+      };
 
-      // Combine all playlists
-      const allPlaylists = [
-        ...ownedPlaylists.items,
-        // Create a "Liked Songs" playlist if they have any saved tracks
-        followedPlaylists.items.length > 0 ? {
-          id: 'liked_songs',
-          name: 'Liked Songs',
-          images: [{ url: 'https://misc.scdn.co/liked-songs/liked-songs-640.png' }],
-          tracks: followedPlaylists.items
-        } : null
-      ].filter(Boolean);
-
-      console.log("Total playlists:", allPlaylists.length);
-      setPlaylists(allPlaylists);
+      // Combine regular playlists with Liked Songs
+      setPlaylists([likedSongsPlaylist, ...playlistResponse.items]);
       
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error fetching playlists:", error);
       setError(error);
     }

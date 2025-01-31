@@ -27,14 +27,20 @@ const Auth = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        setAuthStatus("You're signed in! Use the menu button ☰ to navigate to Dashboard.");
-        // Only redirect if explicitly going to Spotify auth
-        // Remove or comment out this automatic redirect
-        // if (!localStorage.getItem("spotifyAccessToken")) {
-        //   navigate("/spotify-auth");
-        // }
+        // Check both Firebase auth and Spotify token
+        const spotifyToken = localStorage.getItem("spotifyAccessToken");
+        if (spotifyToken) {
+          setAuthStatus("You're signed in! Use the menu button ☰ to navigate to Dashboard.");
+          navigate("/dashboard");
+        } else {
+          setAuthStatus("Please connect your Spotify account");
+          navigate("/spotify-auth");
+        }
       } else {
         setAuthStatus("Please sign in to continue");
+        // Clear all tokens when not authenticated
+        localStorage.removeItem("spotifyAccessToken");
+        localStorage.removeItem("spotifyRefreshToken");
       }
     });
     return () => unsubscribe();
