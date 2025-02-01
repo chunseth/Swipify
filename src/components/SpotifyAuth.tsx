@@ -13,9 +13,11 @@ const SpotifyAuth = () => {
       return;
     }
 
+    // Update production redirect URI to match Spotify Dashboard setting
     const redirectUri = import.meta.env.PROD 
-      ? "https://swipifys.netlify.app/callback"
+      ? "https://swipify-app.netlify.app/callback"  // Update this to match your Spotify Dashboard
       : "http://localhost:3000/callback";
+    
     const scopes = [
       "user-read-private",
       "user-read-email",
@@ -24,7 +26,9 @@ const SpotifyAuth = () => {
       "user-library-read"
     ].join(' ');
 
-    const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=token`;
+    console.log("Redirect URI:", redirectUri); // Debug log
+
+    const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=token&show_dialog=true`;
 
     // Redirect to Spotify Auth
     window.location.href = authUrl;

@@ -27,14 +27,21 @@ const Auth = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        // Check both Firebase auth and Spotify token
-        const spotifyToken = localStorage.getItem("spotifyAccessToken");
-        if (spotifyToken) {
-          setAuthStatus("You're signed in! Use the menu button ☰ to navigate to Dashboard.");
-          navigate("/dashboard");
+        // Check if this is a new sign in
+        const isNewSignIn = sessionStorage.getItem('isNewSignIn');
+        if (isNewSignIn) {
+          sessionStorage.removeItem('isNewSignIn');
+          navigate('/spotify-auth');
         } else {
-          setAuthStatus("Please connect your Spotify account");
-          navigate("/spotify-auth");
+          // Check Spotify token for existing users
+          const spotifyToken = localStorage.getItem("spotifyAccessToken");
+          if (spotifyToken) {
+            setAuthStatus("You're signed in! Use the menu button ☰ to navigate to Dashboard.");
+            navigate("/dashboard");
+          } else {
+            setAuthStatus("Please connect your Spotify account");
+            navigate("/spotify-auth");
+          }
         }
       } else {
         setAuthStatus("Please sign in to continue");
@@ -70,6 +77,8 @@ const Auth = () => {
           lastLogin: new Date().toISOString()
         });
         
+        sessionStorage.setItem('isNewSignIn', 'true');
+        
         const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
         const redirectUri = import.meta.env.PROD 
           ? "https://swipifys.netlify.app/callback"
@@ -89,6 +98,7 @@ const Auth = () => {
           }
         }));
         await signInWithEmailAndPassword(auth, email, password);
+        sessionStorage.setItem('isNewSignIn', 'true');
         // Same redirect for signin
         const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
         const redirectUri = import.meta.env.PROD 
@@ -119,6 +129,7 @@ const Auth = () => {
       });
       
       setError(error.message || 'An error occurred during authentication');
+      setAuthStatus("Authentication failed. Please try again.");
     }
   };
 
