@@ -5,26 +5,30 @@ const Callback = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const hash = window.location.hash.substring(1);
-    const params = new URLSearchParams(hash);
-    const accessToken = params.get("access_token");
-    const refreshToken = params.get("refresh_token");
-
-    console.log("Access Token:", accessToken); // Log access token
-    console.log("Refresh Token:", refreshToken); // Log refresh token
-
-    if (accessToken) {
-      localStorage.setItem("spotifyAccessToken", accessToken);
-      if (refreshToken) {
-        localStorage.setItem("spotifyRefreshToken", refreshToken); // Save refresh token
+    console.log("Callback component mounted");
+    
+    // Only process if we have a hash
+    if (window.location.hash) {
+      const hash = window.location.hash.substring(1);
+      
+      const params = new URLSearchParams(hash);
+      const accessToken = params.get("access_token");
+      
+      if (accessToken) {
+        localStorage.setItem("spotifyAccessToken", accessToken);
+        navigate("/dashboard", { replace: true });
+        return;
       }
-      navigate("/dashboard");
-    } else {
-      navigate("/auth");
+    }
+    
+    // Only redirect to auth if we don't have a token in localStorage
+    if (!localStorage.getItem("spotifyAccessToken")) {
+      console.log("No access token found, redirecting to auth");
+      navigate("/auth", { replace: true });
     }
   }, [navigate]);
 
-  return <div>Loading...</div>;
+  return <div>Processing Spotify authentication...</div>;
 };
 
 export default Callback;

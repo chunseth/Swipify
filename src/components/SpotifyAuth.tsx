@@ -1,10 +1,5 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-
 const SpotifyAuth = () => {
-  const navigate = useNavigate();
-
-  useEffect(() => {
+  const handleAuthClick = () => {
     const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
     
     if (!clientId) {
@@ -12,18 +7,14 @@ const SpotifyAuth = () => {
       return;
     }
 
-    // Detect iOS/Safari
+    // Detect Safari
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    console.log("Is Safari:", isSafari); // Debug log
+    console.log("Is Safari:", isSafari);
 
     const redirectUri = window.location.hostname === "localhost"
       ? "http://localhost:3000/callback"
       : "https://swipifys.netlify.app/callback";
 
-    // Generate and store state parameter for CSRF protection
-    const state = Math.random().toString(36).substring(7);
-    sessionStorage.setItem('spotify_auth_state', state);
-      
     const scopes = [
       "user-read-private",
       "user-read-email",
@@ -32,43 +23,49 @@ const SpotifyAuth = () => {
       "user-library-read"
     ].join(' ');
 
-    // Use URLSearchParams for proper encoding
+    const state = Math.random().toString(36).substring(7);
+
+    // Standard approach for other browsers
     const params = new URLSearchParams({
       client_id: clientId,
       response_type: 'token',
       redirect_uri: redirectUri,
       scope: scopes,
       state: state,
-      show_dialog: 'true'
+      show_dialog: 'true',
+      prompt: 'consent'
     });
 
-    const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
-
     if (isSafari) {
-      // For Safari, use a form submission instead of direct redirect
-      const form = document.createElement('form');
-      form.method = 'GET';
-      form.action = 'https://accounts.spotify.com/authorize';
-      
-      for (const [key, value] of params.entries()) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = value;
-        form.appendChild(input);
-      }
-
-      document.body.appendChild(form);
-      form.submit();
+      // Safari-specific approach: Use a traditional link
+      const a = document.createElement('a');
+      a.href = 'https://accounts.spotify.com/authorize?' + params.toString();
+      a.rel = 'noopener noreferrer';
+      a.click();
     } else {
-      window.location.href = authUrl;
+      window.location.href = 'https://accounts.spotify.com/authorize?' + params.toString();
     }
-  }, [navigate]);
+  };
 
   return (
     <div style={{ marginLeft: '64px', padding: '20px' }}>
-      <h2>Connecting to Spotify...</h2>
-      <p>If you're not redirected automatically, please check your pop-up blocker.</p>
+      <h2>Connect to Spotify</h2>
+      <button 
+        onClick={handleAuthClick}
+        style={{
+          padding: '12px 24px',
+          backgroundColor: '#1DB954',
+          color: 'white',
+          border: 'none',
+          borderRadius: '20px',
+          cursor: 'pointer',
+          fontSize: '16px',
+          fontWeight: 'bold'
+        }}
+      >
+        Connect with Spotify
+      </button>
+      <p>Click the button above to connect your Spotify account.</p>
     </div>
   );
 };
