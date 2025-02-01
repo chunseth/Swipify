@@ -27,7 +27,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div style={{ marginLeft: '64px', padding: '20px' }}>
+    <div style={{ padding: '20px' }}>
       <h1>Dashboard</h1>
       <h2 className="dashboard-title">Your Playlists</h2>
       <div className="dashboard-container">
