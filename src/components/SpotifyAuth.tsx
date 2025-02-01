@@ -13,11 +13,16 @@ const SpotifyAuth = () => {
       return;
     }
 
-    // Update production redirect URI to match Spotify Dashboard setting
-    const redirectUri = import.meta.env.PROD 
-      ? "https://swipifys.netlify.app/callback"  // Update this to match your Spotify Dashboard
-      : "http://localhost:3000/callback";
-    
+    // Detect iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    console.log("Is iOS:", isIOS); // Debug log
+
+    const redirectUri = isIOS
+      ? "https://swipifys.netlify.app/callback"  // Fixed domain
+      : window.location.hostname === "localhost"
+        ? "http://localhost:3000/callback"
+        : "https://swipifys.netlify.app/callback";  // Fixed domain
+      
     const scopes = [
       "user-read-private",
       "user-read-email",
@@ -30,8 +35,12 @@ const SpotifyAuth = () => {
 
     const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=token&show_dialog=true`;
 
-    // Redirect to Spotify Auth
-    window.location.href = authUrl;
+    // For iOS, open in new tab to avoid Safari issues
+    if (isIOS) {
+      window.open(authUrl, '_blank');
+    } else {
+      window.location.href = authUrl;
+    }
   }, [navigate]);
 
   return <div>Redirecting to Spotify...</div>;
