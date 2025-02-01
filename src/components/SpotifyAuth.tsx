@@ -15,7 +15,7 @@ const SpotifyAuth = () => {
 
     // Update production redirect URI to match Spotify Dashboard setting
     const redirectUri = import.meta.env.PROD 
-      ? "https://swipify-app.netlify.app/callback"  // Update this to match your Spotify Dashboard
+      ? "https://swipifys.netlify.app/callback"  // Update this to match your Spotify Dashboard
       : "http://localhost:3000/callback";
     
     const scopes = [
