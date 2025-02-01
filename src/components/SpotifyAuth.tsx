@@ -6,22 +6,23 @@ const SpotifyAuth = () => {
 
   useEffect(() => {
     const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
-    console.log("Client ID:", clientId); // Debug log
     
     if (!clientId) {
       console.error("Missing Spotify Client ID");
       return;
     }
 
-    // Detect iOS
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    console.log("Is iOS:", isIOS); // Debug log
+    // Detect iOS/Safari
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    console.log("Is Safari:", isSafari); // Debug log
 
-    const redirectUri = isIOS
-      ? "https://swipifys.netlify.app/callback"  // Fixed domain
-      : window.location.hostname === "localhost"
-        ? "http://localhost:3000/callback"
-        : "https://swipifys.netlify.app/callback";  // Fixed domain
+    const redirectUri = window.location.hostname === "localhost"
+      ? "http://localhost:3000/callback"
+      : "https://swipifys.netlify.app/callback";
+
+    // Generate and store state parameter for CSRF protection
+    const state = Math.random().toString(36).substring(7);
+    sessionStorage.setItem('spotify_auth_state', state);
       
     const scopes = [
       "user-read-private",
@@ -31,19 +32,45 @@ const SpotifyAuth = () => {
       "user-library-read"
     ].join(' ');
 
-    console.log("Redirect URI:", redirectUri); // Debug log
+    // Use URLSearchParams for proper encoding
+    const params = new URLSearchParams({
+      client_id: clientId,
+      response_type: 'token',
+      redirect_uri: redirectUri,
+      scope: scopes,
+      state: state,
+      show_dialog: 'true'
+    });
 
-    const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=token&show_dialog=true`;
+    const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
 
-    // For iOS, open in new tab to avoid Safari issues
-    if (isIOS) {
-      window.open(authUrl, '_blank');
+    if (isSafari) {
+      // For Safari, use a form submission instead of direct redirect
+      const form = document.createElement('form');
+      form.method = 'GET';
+      form.action = 'https://accounts.spotify.com/authorize';
+      
+      for (const [key, value] of params.entries()) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+      }
+
+      document.body.appendChild(form);
+      form.submit();
     } else {
       window.location.href = authUrl;
     }
   }, [navigate]);
 
-  return <div>Redirecting to Spotify...</div>;
+  return (
+    <div style={{ marginLeft: '64px', padding: '20px' }}>
+      <h2>Connecting to Spotify...</h2>
+      <p>If you're not redirected automatically, please check your pop-up blocker.</p>
+    </div>
+  );
 };
 
 export default SpotifyAuth;
