@@ -27,24 +27,12 @@ const Auth = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        // Check if this is a new sign in
-        const isNewSignIn = sessionStorage.getItem('isNewSignIn');
-        if (isNewSignIn) {
-          sessionStorage.removeItem('isNewSignIn');
-          navigate('/spotify-auth');
-        } else {
-          // Check Spotify token for existing users
-          const spotifyToken = localStorage.getItem("spotifyAccessToken");
-          if (spotifyToken) {
-            setAuthStatus("You're signed in! Use the menu button ☰ to navigate to Dashboard.");
-            navigate("/dashboard");
-          } else {
-            setAuthStatus("Please connect your Spotify account");
-          }
-        }
+        // Always show the introduction page
+        navigate("/intro");
+        return;
       } else {
-        setAuthStatus("Please sign in to continue");
-        // Clear all tokens when not authenticated
+        // If not signed in, navigate to the auth page and clear tokens
+        navigate("/auth");
         localStorage.removeItem("spotifyAccessToken");
         localStorage.removeItem("spotifyRefreshToken");
       }

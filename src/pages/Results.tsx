@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { ref, get } from "firebase/database";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { ref, get, set } from "firebase/database";
 import { db, auth } from "../services/firebase";
 
 interface Song {
@@ -17,6 +17,7 @@ const Results = () => {
   const [finalists, setFinalists] = useState<Song[]>([]);
   const [playlistName, setPlaylistName] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -50,6 +51,27 @@ const Results = () => {
 
     fetchResults();
   }, [playlistId]);
+
+  const resetPlaylist = async () => {
+    const userId = auth.currentUser?.uid;
+    if (!userId || !playlistId) return;
+
+    try {
+      const playlistRef = ref(db, `users/${userId}/playlists/${playlistId}`);
+      const updates = {
+        matchups: null,
+        finalists: null,
+        finalMatchups: null,
+        currentGroup: null,
+        songOrder: null,
+      };
+
+      await set(playlistRef, updates);
+      navigate(`/compare/${playlistId}`);
+    } catch (error) {
+      console.error("Error resetting playlist:", error);
+    }
+  };
 
   if (loading) {
     return (
@@ -129,12 +151,12 @@ const Results = () => {
           >
             Back to Playlists
           </Link>
-          <Link
-            to={`/compare/${playlistId}`}
+          <button
+            onClick={resetPlaylist}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-blue-600 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             Start New Ranking
-          </Link>
+          </button>
         </div>
       </div>
     </div>
