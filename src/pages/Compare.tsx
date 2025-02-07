@@ -325,7 +325,7 @@ const Compare = () => {
   }, [groupMatchups, currentGroupIndex]);
 
   // Add this shuffle function
-  const shuffleArray = <T,>(array: T[]): T[] => {
+  const shuffleArray = <T extends { previewUrl: string | null }>(array: T[]): T[] => {
     const newArray = [...array];
     for (let i = newArray.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -363,8 +363,6 @@ const Compare = () => {
         if (existingData?.songOrder) {
             // If we have existing data, reconstruct the original order
             orderedSongs = existingData.songOrder
-                .map(songId => songs.find(s => s.id === songId))
-                .filter(Boolean) as Song[];
             groups = [];
             for (let i = 0; i < orderedSongs.length; i += 6) {
                 groups.push(orderedSongs.slice(i, i + 6));
